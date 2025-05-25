@@ -1,0 +1,10 @@
+[workspace]
+release = false
+
+[[package]]
+name = "tcmalloc-better"
+release = true
+
+[[package]]
+name = "libtcmalloc-sys"
+release = true
