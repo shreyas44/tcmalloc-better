@@ -37,13 +37,13 @@ jobs:
         run: cargo build
 
       - name: Test
-        run: cargo test
+        run: cargo test --workspace
 
       - name: Build (all features)
         run: cargo build --all-features
 
       - name: Test (all features)
-        run: cargo test --all-features
+        run: cargo test --workspace --all-features
 
   lint:
     name: Rustfmt / Clippy
