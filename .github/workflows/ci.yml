@@ -185,8 +185,8 @@ jobs:
       - name: Test (legacy locking)
         run: cargo test --workspace --features legacy_locking
 
-  lint:
-    name: Rustfmt / Clippy
+  rustfmt:
+    name: Rustfmt
     runs-on: ubuntu-latest
 
     steps:
@@ -196,17 +196,30 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: rustfmt, clippy
+          components: rustfmt
 
       - name: Fmt
         run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
   # Detect cases where documentation links would be dead
-  doc:
-    name: Check documentation
+  doc-tcmalloc-better:
+    name: Check documentation in tcmalloc-better
     runs-on: ubuntu-latest
     steps:
 
@@ -223,8 +236,26 @@ jobs:
       # gets us the nicer syntax for linking to functions, and is in-line with
       # what docs.rs uses.
 
-      - name: 'Check documentation links in `mimalloc`'
+      - name: 'Check documentation links in `tcmalloc-better`'
         run: cargo rustdoc --features std,extension,8k_pages -- -D warnings --cfg docsrs
+
+  doc-libtcmalloc-sys:
+    name: Check documentation in libtcmalloc-sys
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+
+      # Note: We need to use nightly rust, and `cargo rustdoc` (yes, not `cargo
+      # doc`) to actually get it to respect -D warnings... Using nightly also
+      # gets us the nicer syntax for linking to functions, and is in-line with
+      # what docs.rs uses.
 
       - name: 'Check documentation links in `libtcmalloc-sys`'
         run: cargo rustdoc -p libtcmalloc-sys --features extension,8k_pages -- -D warnings --cfg docsrs
