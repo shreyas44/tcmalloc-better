@@ -26,7 +26,7 @@ exclude = [
 
 [workspace]
 members = [
-    "bazel-log-parser",
+    "libtcmalloc-sys/bazel-log-parser",
     "libtcmalloc-sys"
 ]
 
