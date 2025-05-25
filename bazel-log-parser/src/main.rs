@@ -30,6 +30,7 @@ struct MergedCompileParams {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct SortedCompileParams {
     defines: Vec<String>,
     w_all: Vec<bool>,
