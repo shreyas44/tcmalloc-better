@@ -12,11 +12,21 @@ exclude = [
     "/c_src/tcmalloc/ci",
     "/c_src/tcmalloc/docs",
     "/c_src/tcmalloc/tcmalloc/.github",
-    "/c_src/tcmalloc/tcmalloc/testdata",
     "/c_src/tcmalloc/tcmalloc/testing",
     "/c_src/abseil-cpp/.github",
     "/c_src/abseil-cpp/ci",
-    "/c_src/abseil-cpp/CMake"
+    "/c_src/abseil-cpp/CMake",
+    "/c_src/**/testdata",
+    "/c_src/**/*_test.cc",
+    "/c_src/**/*.cmake",
+    "/c_src/**/*.py",
+    "/c_src/**/*.bzl",
+    "/c_src/**/*.bzlmod",
+    "/c_src/**/CMakeLists.txt",
+    "/c_src/**/*.bazel",
+    "/c_src/**/.bazelrc",
+    "/c_src/**/BUILD",
+    "/c_src/**/WORKSPACE",
 ]
 links = "tcmalloc"
 
