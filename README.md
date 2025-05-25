@@ -17,7 +17,7 @@ static GLOBAL: TCMalloc = TCMalloc;
 
 ## Requirements
 
-A __C__ compiler is required for building [TCMalloc](https://github.com/google/tcmalloc) with cargo.
+A __C++__ compiler is required for building [TCMalloc](https://github.com/google/tcmalloc) with cargo.
 
 [crates.io]: https://crates.io/crates/tcmalloc-better
 [Latest Version]: https://img.shields.io/crates/v/tcmalloc-better.svg
