@@ -1,6 +1,6 @@
 [package]
 name = "tcmalloc-better"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 description = "A Rust wrapper over Google's TCMalloc memory allocator"
 repository = "https://github.com/maratik123/tcmalloc-better"
