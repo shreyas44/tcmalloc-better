@@ -8,15 +8,9 @@ on:
     - cron: '00 01 * * *'
 
 jobs:
-  rust:
-    name: Rust
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        toolchain: [ "stable" ]
-
-    runs-on: ${{ matrix.os }}
+  rust-build:
+    name: Rust Build
+    runs-on: ubuntu-latest
 
     env:
       CARGO_INCREMENTAL: 0
@@ -31,28 +25,162 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: stable
 
       - name: Build
         run: cargo build
 
+  rust-test:
+    name: Rust Test
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Test
         run: cargo test --workspace
+
+  rust-test-8k:
+    name: Rust Test (8k pages)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Test (8k pages)
         run: cargo test --workspace --features std,extension,8k_pages --no-default-features
 
+  rust-test-large:
+    name: Rust Test (large pages)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Test (large pages)
         run: cargo test --workspace --features std,extension,32k_pages --no-default-features
+
+  rust-test-256k:
+    name: Rust Test (256k pages)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Test (256k pages)
         run: cargo test --workspace --features std,extension,256k_pages --no-default-features
 
+  rust-test-numa:
+    name: Rust
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+      TCMALLOC_NUMA_AWARE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Test (numa aware)
-        run: TCMALLOC_NUMA_AWARE=1 cargo test --workspace --features numa_aware
+        run: cargo test --workspace --features numa_aware
+
+  rust-test-perthread:
+    name: Rust Test (deprecated per thread cache)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Test (deprecated per thread cache)
         run: cargo test --workspace --features deprecated_perthread
+
+  rust-test-locking:
+    name: Rust Test (legacy locking)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Test (legacy locking)
         run: cargo test --workspace --features legacy_locking
