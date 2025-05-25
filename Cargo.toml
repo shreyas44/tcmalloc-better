@@ -2,6 +2,7 @@
 name = "tcmalloc-better"
 version = "0.1.5"
 edition = "2024"
+rust-version = "1.85.1"
 description = "A Rust wrapper over Google's TCMalloc memory allocator"
 repository = "https://github.com/maratik123/tcmalloc-better"
 license = "MIT"
