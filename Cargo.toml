@@ -32,9 +32,17 @@ members = [
 
 [dependencies]
 libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.2", default-features = false }
+document-features = "0.2"
 
 [features]
+default = ["std"]
+## TCMalloc extension API
 extension = ["libtcmalloc-sys/extension"]
+## enable std
+std = []
 
 [package.metadata.docs.rs]
-features = ["extension"]
+all-features = true
+# enable features in the documentation
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

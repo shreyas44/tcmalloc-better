@@ -1,4 +1,5 @@
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! A drop-in global allocator wrapper around the [TCMalloc](https://github.com/google/tcmalloc) allocator.
 //! TCMalloc is a general-purpose, performance-oriented allocator built by Google.
@@ -10,17 +11,18 @@
 //! #[global_allocator]
 //! static GLOBAL: TCMalloc = TCMalloc;
 //! ```
-//!
-//! ## Features
-//!
-//! * `extension` - TCMalloc extension API
+//! ## Feature flags
+#![doc = document_features::document_features!()]
 
 #[cfg(feature = "extension")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extension")))]
 mod extension;
 
 use core::alloc::{GlobalAlloc, Layout};
 use libtcmalloc_sys::{TCMallocInternalAlignedAlloc, TCMallocInternalFreeAlignedSized};
 
+/// A memory allocator that can be registered as the standard library’s default
+/// through the `#[global_allocator]` attribute.
 pub struct TCMalloc;
 
 unsafe impl GlobalAlloc for TCMalloc {
