@@ -16,13 +16,7 @@ impl TCMalloc {
     /// Runs housekeeping actions for the allocator off of the main allocation path.
     ///
     /// Should be run in the background thread. May return or may not return.
-    /// ## Usage
-    /// ```rust,ignore
-    /// use tcmalloc_better::TCMalloc;
-    ///
-    /// #[global_allocator]
-    /// static GLOBAL: TCMalloc = TCMalloc;
-    /// ```
+    /// Use `process_background_actions_thread()` if possible.
     pub fn process_background_actions() {
         unsafe { ProcessBackgroundActions() };
     }
@@ -30,10 +24,14 @@ impl TCMalloc {
     /// Runs housekeeping actions for the allocator in the background thread.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    pub fn process_background_actions_thread() -> thread::JoinHandle<()> {
-        thread::spawn(|| {
-            Self::process_background_actions();
-        })
+    pub fn process_background_actions_thread() -> Option<thread::JoinHandle<()>> {
+        if Self::needs_process_background_actions() {
+            Some(thread::spawn(|| {
+                Self::process_background_actions();
+            }))
+        } else {
+            None
+        }
     }
 }
 
