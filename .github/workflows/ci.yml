@@ -39,11 +39,23 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
-      - name: Build (all features)
-        run: cargo build --all-features
+      - name: Test (8k pages)
+        run: cargo test --workspace --features std,extension,8k_pages --no-default-features
 
-      - name: Test (all features)
-        run: cargo test --workspace --all-features
+      - name: Test (large pages)
+        run: cargo test --workspace --features std,extension,32k_pages --no-default-features
+
+      - name: Test (256k pages)
+        run: cargo test --workspace --features std,extension,256k_pages --no-default-features
+
+      - name: Test (numa aware)
+        run: TCMALLOC_NUMA_AWARE=1 cargo test --workspace --features numa_aware
+
+      - name: Test (deprecated per thread cache)
+        run: cargo test --workspace --features deprecated_perthread
+
+      - name: Test (legacy locking)
+        run: cargo test --workspace --features legacy_locking
 
   lint:
     name: Rustfmt / Clippy
@@ -84,7 +96,7 @@ jobs:
       # what docs.rs uses.
 
       - name: 'Check documentation links in `mimalloc`'
-        run: cargo rustdoc --all-features -- -D warnings --cfg docsrs
+        run: cargo rustdoc --features std,extension,8k_pages -- -D warnings --cfg docsrs
 
       - name: 'Check documentation links in `libtcmalloc-sys`'
-        run: cargo rustdoc -p libtcmalloc-sys --all-features -- -D warnings --cfg docsrs
+        run: cargo rustdoc -p libtcmalloc-sys --features extension,8k_pages -- -D warnings --cfg docsrs

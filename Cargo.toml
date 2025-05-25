@@ -36,14 +36,36 @@ libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.4", default-feature
 document-features = "0.2"
 
 [features]
-default = ["std"]
-## TCMalloc extension API
-extension = ["libtcmalloc-sys/extension"]
+default = ["std", "8k_pages", "extension"]
 ## enable std
 std = []
+## TCMalloc extension API
+extension = ["libtcmalloc-sys/extension"]
+## Enable NUMA-aware allocation. Need to use `TCMALLOC_NUMA_AWARE` environment variable at runtime.
+## See [TCMalloc comments](https://github.com/google/tcmalloc/blob/master/tcmalloc/internal/numa.cc#L54)
+numa_aware = ["libtcmalloc-sys/numa_aware"]
+## Use deprecated per-thread caching. Newer systems with Linux kernel version >= 4.18 should not use this.
+deprecated_perthread = ["libtcmalloc-sys/deprecated_perthread"]
+## Use legacy locking for systems with disabled HugeTLB
+## See [TCMalloc docs](https://github.com/google/tcmalloc/blob/master/docs/design.md#tcmalloc-backend)
+legacy_locking = ["libtcmalloc-sys/legacy_locking"]
+
+#! Logical Page Sizes (These features are mutually exclusive).
+#! Larger page size leads to greater performance in expense to increased fragmentation.
+#! See [TCMalloc tuning guide](https://github.com/google/tcmalloc/blob/master/docs/tuning.md#the-logical-page-size-for-tcmalloc)
+
+## 8k pages
+8k_pages = ["libtcmalloc-sys/8k_pages"]
+## Large pages
+32k_pages = ["libtcmalloc-sys/32k_pages"]
+## 256k pages
+256k_pages = ["libtcmalloc-sys/256k_pages"]
+## 4k pages, option for memory constrained systems
+small_but_slow = ["libtcmalloc-sys/small_but_slow"]
+
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["std", "extension", "8k_pages"]
 # enable features in the documentation
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]

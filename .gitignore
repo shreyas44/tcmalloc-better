@@ -10,5 +10,5 @@ target/
 *.pdb
 
 # Other artifacts
-build.log
+build*.log
 yatool.xml
