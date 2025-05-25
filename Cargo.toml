@@ -1,0 +1,30 @@
+[package]
+name = "tcmalloc-better"
+version = "0.1.0"
+edition = "2024"
+description = "A Rust wrapper over Google's TCMalloc memory allocator"
+repository = "https://github.com/maratik123/tcmalloc-better"
+license = "MIT"
+keywords = [
+    "tcmalloc",
+    "allocator",
+    "memory",
+    "performance"
+]
+categories = [
+    "memory-management",
+    "api-bindings"
+]
+readme = "README.md"
+authors = [
+    "Marat Bukharov <marat.buharov@gmail.com>"
+]
+
+[workspace]
+members = [
+    "bazel-log-parser",
+    "libtcmalloc-sys"
+]
+
+[dependencies]
+libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.0" }

@@ -1,0 +1,27 @@
+[package]
+name = "libtcmalloc-sys"
+version = "0.1.0"
+edition = "2024"
+description = "Sys crate wrapping the tcmalloc allocator"
+repository = "https://github.com/maratik123/tcmalloc-better/tree/main/libtcmalloc-sys"
+license = "MIT"
+keywords = ["tcmalloc", "allocator", "memory", "performance"]
+categories = ["memory-management", "api-bindings"]
+authors = ["Marat Bukharov <marat.buharov@gmail.com>"]
+exclude = [
+    "/c_src/tcmalloc/ci",
+    "/c_src/tcmalloc/docs",
+    "/c_src/tcmalloc/tcmalloc/.github",
+    "/c_src/tcmalloc/tcmalloc/testdata",
+    "/c_src/tcmalloc/tcmalloc/testing",
+    "/c_src/abseil-cpp/.github",
+    "/c_src/abseil-cpp/ci",
+    "/c_src/abseil-cpp/CMake"
+]
+links = "tcmalloc"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1", features = ["parallel"] }

@@ -1,0 +1,6 @@
+[submodule "libtcmalloc-sys/c_src/abseil-cpp"]
+	path = libtcmalloc-sys/c_src/abseil-cpp
+	url = git@github.com:abseil/abseil-cpp.git
+[submodule "libtcmalloc-sys/c_src/tcmalloc"]
+	path = libtcmalloc-sys/c_src/tcmalloc
+	url = git@github.com:google/tcmalloc.git
