@@ -8,15 +8,9 @@ on:
     - cron: '00 01 * * *'
 
 jobs:
-  rust:
-    name: Rust
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        toolchain: [ "stable" ]
-
-    runs-on: ${{ matrix.os }}
+  rust-build:
+    name: Rust Build
+    runs-on: ubuntu-latest
 
     env:
       CARGO_INCREMENTAL: 0
@@ -31,22 +25,168 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: stable
 
       - name: Build
         run: cargo build
 
+  rust-test:
+    name: Rust Test
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
       - name: Test
         run: cargo test --workspace
 
-      - name: Build (all features)
-        run: cargo build --all-features
+  rust-test-8k:
+    name: Rust Test (8k pages)
+    runs-on: ubuntu-latest
 
-      - name: Test (all features)
-        run: cargo test --workspace --all-features
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
 
-  lint:
-    name: Rustfmt / Clippy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (8k pages)
+        run: cargo test --workspace --features std,extension,8k_pages --no-default-features
+
+  rust-test-large:
+    name: Rust Test (large pages)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (large pages)
+        run: cargo test --workspace --features std,extension,32k_pages --no-default-features
+
+  rust-test-256k:
+    name: Rust Test (256k pages)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (256k pages)
+        run: cargo test --workspace --features std,extension,256k_pages --no-default-features
+
+  rust-test-numa:
+    name: Rust
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+      TCMALLOC_NUMA_AWARE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (numa aware)
+        run: cargo test --workspace --features numa_aware
+
+  rust-test-perthread:
+    name: Rust Test (deprecated per thread cache)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (deprecated per thread cache)
+        run: cargo test --workspace --features deprecated_perthread
+
+  rust-test-locking:
+    name: Rust Test (legacy locking)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (legacy locking)
+        run: cargo test --workspace --features legacy_locking
+
+  rustfmt:
+    name: Rustfmt
     runs-on: ubuntu-latest
 
     steps:
@@ -56,17 +196,30 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: rustfmt, clippy
+          components: rustfmt
 
       - name: Fmt
         run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
   # Detect cases where documentation links would be dead
-  doc:
-    name: Check documentation
+  doc-tcmalloc-better:
+    name: Check documentation in tcmalloc-better
     runs-on: ubuntu-latest
     steps:
 
@@ -83,8 +236,26 @@ jobs:
       # gets us the nicer syntax for linking to functions, and is in-line with
       # what docs.rs uses.
 
-      - name: 'Check documentation links in `mimalloc`'
-        run: cargo rustdoc --all-features -- -D warnings --cfg docsrs
+      - name: 'Check documentation links in `tcmalloc-better`'
+        run: cargo rustdoc --features std,extension,8k_pages -- -D warnings --cfg docsrs
+
+  doc-libtcmalloc-sys:
+    name: Check documentation in libtcmalloc-sys
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+
+      # Note: We need to use nightly rust, and `cargo rustdoc` (yes, not `cargo
+      # doc`) to actually get it to respect -D warnings... Using nightly also
+      # gets us the nicer syntax for linking to functions, and is in-line with
+      # what docs.rs uses.
 
       - name: 'Check documentation links in `libtcmalloc-sys`'
-        run: cargo rustdoc -p libtcmalloc-sys --all-features -- -D warnings --cfg docsrs
+        run: cargo rustdoc -p libtcmalloc-sys --features extension,8k_pages -- -D warnings --cfg docsrs
