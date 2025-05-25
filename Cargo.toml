@@ -1,6 +1,6 @@
 [package]
 name = "tcmalloc-better"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "A Rust wrapper over Google's TCMalloc memory allocator"
 repository = "https://github.com/maratik123/tcmalloc-better"
@@ -31,7 +31,7 @@ members = [
 ]
 
 [dependencies]
-libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.2", default-features = false }
+libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.3", default-features = false }
 document-features = "0.2"
 
 [features]
