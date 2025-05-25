@@ -39,11 +39,11 @@ jobs:
       - name: Test
         run: cargo test
 
-      - name: Build (extended)
-        run: cargo build --features extended
+      - name: Build (extension)
+        run: cargo build --features extension
 
-      - name: Test (extended)
-        run: cargo test --features extended
+      - name: Test (extension)
+        run: cargo test --features extension
 
   lint:
     name: Rustfmt / Clippy
