@@ -11,10 +11,10 @@ Current TCMalloc wrappers rely on [gperftools](https://github.com/gperftools/gpe
  for over 10 years and lacks modern features such as per-CPU caching.
 
 * [tcmalloc](https://crates.io/crates/tcmalloc) - Cons:
-  * Outdated wrapper, which does not updates for years.
+  * Outdated wrapper, which does not updates for years
   * Depends on gperftools-2.7
 * [tcmalloc2](https://crates.io/crates/tcmalloc2) - Cons:
-  * Wrapper which can not build offline
+  * Wrapper which can not build in offline mode
   * Depends on gperftools-2.16
 
 ## Usage
