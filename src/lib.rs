@@ -11,6 +11,12 @@
 //! static GLOBAL: TCMalloc = TCMalloc;
 //! ```
 //!
+//! ## Features
+//!
+//! * `extension` - TCMalloc extension API
+
+#[cfg(feature = "extension")]
+mod extension;
 
 use core::alloc::{GlobalAlloc, Layout};
 use libtcmalloc_sys::{TCMallocInternalAlignedAlloc, TCMallocInternalFreeAlignedSized};

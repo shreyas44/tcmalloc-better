@@ -39,6 +39,12 @@ jobs:
       - name: Test
         run: cargo test
 
+      - name: Build (extended)
+        run: cargo build --features extended
+
+      - name: Test (extended)
+        run: cargo test --features extended
+
   lint:
     name: Rustfmt / Clippy
     runs-on: ubuntu-latest

@@ -1,3 +1,5 @@
+use std::env;
+
 fn main() {
     let mut cc = cc::Build::new();
     cc.files([
@@ -166,6 +168,9 @@ fn main() {
         "c_src/tcmalloc/tcmalloc/experiment.cc",
         "c_src/tcmalloc/tcmalloc/tcmalloc.cc",
     ]);
+    if env::var_os("CARGO_FEATURE_EXTENSION").is_some() {
+        cc.file("c_src/malloc_extension_bridge.cc");
+    }
     cc.includes(["c_src/abseil-cpp", "c_src/tcmalloc"]);
     cc.cpp(true);
     cc.std("c++17");

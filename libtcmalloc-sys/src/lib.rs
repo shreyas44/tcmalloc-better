@@ -1,6 +1,10 @@
 #![no_std]
 
-extern crate libc;
+#[cfg(feature = "extension")]
+mod extension;
+
+#[cfg(feature = "extension")]
+pub use extension::*;
 
 unsafe extern "C" {
     /// Allocate `size` bytes aligned by `align`.
@@ -11,7 +15,7 @@ unsafe extern "C" {
     pub fn TCMallocInternalAlignedAlloc(
         align: libc::size_t,
         size: libc::size_t,
-    ) -> *mut libc::c_void;
+    ) -> *mut core::ffi::c_void;
 
     /// Free previously allocated memory.
     ///
@@ -19,7 +23,7 @@ unsafe extern "C" {
     ///
     /// The `align` and `size` must match the ones used to allocate `ptr`.
     pub fn TCMallocInternalFreeAlignedSized(
-        ptr: *mut libc::c_void,
+        ptr: *mut core::ffi::c_void,
         align: libc::size_t,
         size: libc::size_t,
     );

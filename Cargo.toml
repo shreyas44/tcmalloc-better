@@ -31,4 +31,10 @@ members = [
 ]
 
 [dependencies]
-libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.1" }
+libtcmalloc-sys = { path = "libtcmalloc-sys", version = "0.1.1", default-features = false }
+
+[features]
+extension = ["libtcmalloc-sys/extension"]
+
+[package.metadata.docs.rs]
+features = ["extension"]

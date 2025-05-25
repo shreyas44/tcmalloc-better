@@ -35,3 +35,9 @@ libc = "0.2"
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
+
+[features]
+extension = []
+
+[package.metadata.docs.rs]
+features = ["extension"]
