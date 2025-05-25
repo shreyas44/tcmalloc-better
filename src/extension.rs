@@ -1,18 +1,39 @@
 use crate::TCMalloc;
 use libtcmalloc_sys::{NeedsProcessBackgroundActions, ProcessBackgroundActions};
+use std::thread;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(feature = "extension")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extension")))]
 impl TCMalloc {
-    /// Return true if ProcessBackgroundActions should be called on this platform.
+    /// Return true if `process_background_actions` should be called on this platform.
     pub fn needs_process_background_actions() -> bool {
         unsafe { NeedsProcessBackgroundActions() }
     }
 
     /// Runs housekeeping actions for the allocator off of the main allocation path.
     ///
-    /// Should be run in the background thread.
-    pub fn process_background_actions() -> ! {
+    /// Should be run in the background thread. May return or may not return.
+    /// ## Usage
+    /// ```rust,ignore
+    /// use tcmalloc_better::TCMalloc;
+    ///
+    /// #[global_allocator]
+    /// static GLOBAL: TCMalloc = TCMalloc;
+    /// ```
+    pub fn process_background_actions() {
         unsafe { ProcessBackgroundActions() };
-        unreachable!("ProcessBackgroundActions() should never return")
+    }
+
+    /// Runs housekeeping actions for the allocator in the background thread.
+    #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    pub fn process_background_actions_thread() -> thread::JoinHandle<()> {
+        thread::spawn(|| {
+            Self::process_background_actions();
+        })
     }
 }
 
@@ -24,5 +45,11 @@ mod tests {
     #[cfg(target_os = "linux")]
     fn test_needs_process_background_actions() {
         assert!(!TCMalloc::needs_process_background_actions());
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn test_process_background_actions() {
+        TCMalloc::process_background_actions_thread();
     }
 }

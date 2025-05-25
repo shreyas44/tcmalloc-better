@@ -1,9 +1,17 @@
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
+//! A Rust raw wrapper over Google's TCMalloc memory allocator
+//!
+//! ## Feature flags
+#![doc = document_features::document_features!()]
 
 #[cfg(feature = "extension")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extension")))]
 mod extension;
 
 #[cfg(feature = "extension")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extension")))]
 pub use extension::*;
 
 unsafe extern "C" {

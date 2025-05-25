@@ -18,6 +18,13 @@ exclude = [
     "/c_src/abseil-cpp/CMake",
     "/c_src/**/testdata",
     "/c_src/**/*_test.cc",
+    "/c_src/**/*_test_helper.cc",
+    "/c_src/**/*_fuzz.cc",
+    "/c_src/**/*_benchmark.cc",
+    "/c_src/**/*_test.h",
+    "/c_src/**/*_test_helper.h",
+    "/c_src/**/*_fuzz.h",
+    "/c_src/**/*_benchmark.h",
     "/c_src/**/*.cmake",
     "/c_src/**/*.py",
     "/c_src/**/*.bzl",
@@ -32,12 +39,17 @@ links = "tcmalloc"
 
 [dependencies]
 libc = "0.2"
+document-features = "0.2"
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
 
 [features]
+## TCMalloc extension API
 extension = []
 
 [package.metadata.docs.rs]
-features = ["extension"]
+all-features = true
+# enable features in the documentation
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]
