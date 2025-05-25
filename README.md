@@ -9,7 +9,7 @@ TCMalloc is a general-purpose, performance-oriented allocator built by Google.
 ## Usage
 
 ```rust
-use tcmalloc::TCMalloc;
+use tcmalloc_better::TCMalloc;
 
 #[global_allocator]
 static GLOBAL: TCMalloc = TCMalloc;

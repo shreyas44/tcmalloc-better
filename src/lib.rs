@@ -5,7 +5,7 @@
 //!
 //! ## Usage
 //! ```rust,ignore
-//! use tcmalloc::TCMalloc;
+//! use tcmalloc_better::TCMalloc;
 //!
 //! #[global_allocator]
 //! static GLOBAL: TCMalloc = TCMalloc;
