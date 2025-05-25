@@ -2,7 +2,7 @@
 name = "libtcmalloc-sys"
 version = "0.1.3"
 edition = "2024"
-rust-version = "1.85.1"
+rust-version = "1.87.0"
 description = "Sys crate wrapping the tcmalloc allocator"
 repository = "https://github.com/maratik123/tcmalloc-better/tree/main/libtcmalloc-sys"
 license = "MIT"
