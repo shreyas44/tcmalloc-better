@@ -50,9 +50,9 @@ deprecated_perthread = ["libtcmalloc-sys/deprecated_perthread"]
 ## See [TCMalloc docs](https://github.com/google/tcmalloc/blob/master/docs/design.md#tcmalloc-backend)
 legacy_locking = ["libtcmalloc-sys/legacy_locking"]
 
-#! Logical Page Sizes (These features are mutually exclusive).
+#! ### Logical Page Sizes (These features are mutually exclusive).
 #! Larger page size leads to greater performance in expense to increased fragmentation.
-#! See [TCMalloc tuning guide](https://github.com/google/tcmalloc/blob/master/docs/tuning.md#the-logical-page-size-for-tcmalloc)
+#! See [TCMalloc tuning guide](https://github.com/google/tcmalloc/blob/master/docs/tuning.md#the-logical-page-size-for-tcmalloc):
 
 ## 8k pages
 8k_pages = ["libtcmalloc-sys/8k_pages"]
