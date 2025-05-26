@@ -9,6 +9,7 @@ extern crate std;
 #[cfg_attr(docsrs, doc(cfg(feature = "extension")))]
 impl TCMalloc {
     /// Return true if `process_background_actions` should be called on this platform.
+    #[inline]
     pub fn needs_process_background_actions() -> bool {
         unsafe { NeedsProcessBackgroundActions() }
     }
@@ -17,6 +18,7 @@ impl TCMalloc {
     ///
     /// Should be run in the background thread. May return or may not return.
     /// Use `process_background_actions_thread()` if possible.
+    #[inline]
     pub fn process_background_actions() {
         unsafe { ProcessBackgroundActions() };
     }
