@@ -10,7 +10,21 @@
 //!
 //! #[global_allocator]
 //! static GLOBAL: TCMalloc = TCMalloc;
+//!
+//! fn main() {
+//!     TCMalloc::process_background_actions_thread();
+//!
+//!     // Rest of main
+//! }
 //! ```
+//!
+//! ## Caveats
+//!
+//! This library is intended for use on Linux (x86_64, aarch64).
+//! For applications requiring support on a broader range of platforms,
+//! consider using [malloc-best-effort](https://crates.io/crates/malloc-best-effort), which automatically selects
+//! the best allocator based on the target platform.
+//!
 //! ## Feature flags
 #![doc = document_features::document_features!()]
 

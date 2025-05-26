@@ -17,6 +17,13 @@ Current TCMalloc wrappers rely on [gperftools](https://github.com/gperftools/gpe
   * Wrapper which can not build in offline mode
   * Depends on gperftools-2.16
 
+## Caveats
+
+This library is intended for use on Linux (x86_64, aarch64).
+For applications requiring support on a broader range of platforms,
+consider using [malloc-best-effort], which automatically selects
+the best allocator based on the target platform.
+
 ## Usage
 
 ```rust
@@ -24,14 +31,25 @@ use tcmalloc_better::TCMalloc;
 
 #[global_allocator]
 static GLOBAL: TCMalloc = TCMalloc;
+
+fn main() {
+    TCMalloc::process_background_actions_thread();
+
+    // Rest of main
+}
 ```
 
 ## Requirements
 
 A __C++__ compiler is required for building [TCMalloc] with cargo.
 
+## See also
+* [malloc-best-effort] - library, which automatically selects
+                         the best suited allocator based on the target platform
+
 [crates.io]: https://crates.io/crates/tcmalloc-better
 [Latest Version]: https://img.shields.io/crates/v/tcmalloc-better.svg
 [Documentation]: https://docs.rs/tcmalloc-better/badge.svg
 [docs.rs]: https://docs.rs/tcmalloc-better
 [TCMalloc]: https://github.com/google/tcmalloc
+[malloc-best-effort]: https://crates.io/crates/malloc-best-effort
