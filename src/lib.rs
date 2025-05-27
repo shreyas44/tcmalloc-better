@@ -20,7 +20,7 @@
 //!
 //! ## Caveats
 //!
-//! This library is intended for use on Linux (x86_64, aarch64).
+//! This library is intended for use on Linux (x86_64, aarch64, powerpc64le).
 //! For applications requiring support on a broader range of platforms,
 //! consider using [malloc-best-effort](https://crates.io/crates/malloc-best-effort), which automatically selects
 //! the best allocator based on the target platform.
