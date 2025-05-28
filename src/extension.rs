@@ -1,5 +1,6 @@
 use crate::TCMalloc;
 use libtcmalloc_sys::{NeedsProcessBackgroundActions, ProcessBackgroundActions};
+#[cfg(feature = "std")]
 use std::thread;
 
 #[cfg(feature = "std")]
