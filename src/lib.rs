@@ -33,7 +33,9 @@
 mod extension;
 
 use core::alloc::{GlobalAlloc, Layout};
-use libtcmalloc_sys::{TCMallocInternalAlignedAlloc, TCMallocInternalFreeAlignedSized};
+use libtcmalloc_sys::{
+    TCMallocInternalDeleteSizedAligned, TCMallocInternalNewAlignedNothrowBridge,
+};
 
 /// A memory allocator that can be registered as the standard library’s default
 /// through the `#[global_allocator]` attribute.
@@ -42,16 +44,16 @@ pub struct TCMalloc;
 unsafe impl GlobalAlloc for TCMalloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe { TCMallocInternalAlignedAlloc(layout.align(), layout.size()) as *mut u8 }
+        unsafe { TCMallocInternalNewAlignedNothrowBridge(layout.size(), layout.align()) as *mut u8 }
     }
 
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         unsafe {
-            TCMallocInternalFreeAlignedSized(
+            TCMallocInternalDeleteSizedAligned(
                 ptr as *mut core::ffi::c_void,
-                layout.align(),
                 layout.size(),
+                layout.align(),
             );
         }
     }
@@ -64,7 +66,7 @@ mod tests {
     #[test]
     fn it_frees_allocated_memory() {
         unsafe {
-            let layout = Layout::from_size_align(8, 8).unwrap();
+            let layout = Layout::from_size_align(8, 16).unwrap();
             let alloc = TCMalloc;
 
             let ptr = alloc.alloc(layout);
@@ -86,7 +88,7 @@ mod tests {
     #[test]
     fn it_frees_zero_allocated_memory() {
         unsafe {
-            let layout = Layout::from_size_align(8, 8).unwrap();
+            let layout = Layout::from_size_align(8, 16).unwrap();
             let alloc = TCMalloc;
 
             let ptr = alloc.alloc_zeroed(layout);
@@ -108,7 +110,7 @@ mod tests {
     #[test]
     fn it_frees_reallocated_memory() {
         unsafe {
-            let layout = Layout::from_size_align(8, 8).unwrap();
+            let layout = Layout::from_size_align(8, 16).unwrap();
             let new_size = 16;
             let new_layout = Layout::from_size_align(new_size, layout.align()).unwrap();
             let alloc = TCMalloc;

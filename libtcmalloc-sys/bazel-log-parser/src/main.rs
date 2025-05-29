@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use std::cell::OnceCell;
-use std::collections::{BTreeSet, HashSet};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashSet};
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -95,11 +96,12 @@ fn main() -> Result<()> {
     let args: Vec<_> = env::args().skip(1).collect();
     let log_name = args.last().expect("expected build log name");
     let disable_per_line_output = args.iter().any(|arg| arg == "-q");
+    let disable_file_list_output = args.iter().any(|arg| arg == "-l");
     let log_file = BufReader::new(File::open(log_name)?);
     let mut it = log_file.lines().fuse().peekable();
     let mut i = 0usize;
     let mut merged = MergedCompileParams::default();
-    let mut source_files = BTreeSet::new();
+    let mut source_files = BinaryHeap::new();
     while let Some(line) = it.next() {
         let line = line?;
         const SUBCOMMAND: &str = "SUBCOMMAND: # ";
@@ -227,7 +229,9 @@ fn main() -> Result<()> {
                 .ok_or_else(|| anyhow!("output not found"))?;
             i += 1;
             merged.merge(&compile_params);
-            source_files.insert(source_file.to_string());
+            if !disable_file_list_output {
+                source_files.push(Reverse(source_file.to_string()));
+            }
             if !disable_per_line_output {
                 println!(
                     "{i} - {source_file}: {input} o:{output} std:{std:?} g:{g:?} wall:{w_all} \
@@ -247,7 +251,13 @@ fn main() -> Result<()> {
         }
     }
     println!("{:#?}", SortedCompileParams::from(merged));
-    println!("{source_files:#?}");
+    if !disable_file_list_output {
+        println!("[");
+        while let Some(Reverse(source_file)) = source_files.pop() {
+            println!("    \"{source_file}\",");
+        }
+        println!("]");
+    }
     Ok(())
 }
 

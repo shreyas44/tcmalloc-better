@@ -19,21 +19,22 @@ unsafe extern "C" {
     ///
     /// Return a pointer to the allocated memory or null if out of memory.
     ///
-    /// Returns a unique pointer if called with `size` 0.
-    pub fn TCMallocInternalAlignedAlloc(
-        align: libc::size_t,
+    /// Returns a unique pointer if called with `size` 0. But access to memory by this pointer
+    /// is undefined behaviour.
+    pub fn TCMallocInternalNewAlignedNothrowBridge(
         size: libc::size_t,
+        alignment: libc::size_t,
     ) -> *mut core::ffi::c_void;
 
     /// Free previously allocated memory.
     ///
-    /// The pointer `ptr` must have been allocated before (or be null).
+    /// The pointer `ptr` must have been allocated before.
     ///
-    /// The `align` and `size` must match the ones used to allocate `ptr`.
-    pub fn TCMallocInternalFreeAlignedSized(
+    /// The `alignment` and `size` must match the ones used to allocate `ptr`.
+    pub fn TCMallocInternalDeleteSizedAligned(
         ptr: *mut core::ffi::c_void,
-        align: libc::size_t,
         size: libc::size_t,
+        alignment: libc::size_t,
     );
 }
 
@@ -43,7 +44,7 @@ mod tests {
 
     #[test]
     fn it_frees_memory_malloc() {
-        let ptr = unsafe { TCMallocInternalAlignedAlloc(8, 8) } as *mut u8;
-        unsafe { TCMallocInternalFreeAlignedSized(ptr as *mut libc::c_void, 8, 8) };
+        let ptr = unsafe { TCMallocInternalNewAlignedNothrowBridge(8, 16) } as *mut u8;
+        unsafe { TCMallocInternalDeleteSizedAligned(ptr as *mut libc::c_void, 8, 16) };
     }
 }

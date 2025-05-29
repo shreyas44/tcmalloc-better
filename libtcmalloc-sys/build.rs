@@ -207,6 +207,7 @@ fn main() {
         "c_src/tcmalloc/tcmalloc/tcmalloc.cc",
         "c_src/tcmalloc/tcmalloc/thread_cache.cc",
         "c_src/tcmalloc/tcmalloc/transfer_cache.cc",
+        "c_src/malloc_bridge.cc",
     ]);
     if env::var_os("CARGO_FEATURE_EXTENSION").is_some() {
         cc.file("c_src/malloc_extension_bridge.cc");
@@ -226,6 +227,12 @@ fn main() {
     }
     if env::var_os("CARGO_FEATURE_NUMA_AWARE").is_some() {
         cc.define("TCMALLOC_INTERNAL_NUMA_AWARE", None);
+    }
+    if match env::var_os("DEBUG") {
+        Some(debug) => debug.is_empty() || debug == "0" || debug == "false",
+        None => true,
+    } {
+        cc.define("NDEBUG", None);
     }
     cc.force_frame_pointer(true);
     cc.pic(true);
