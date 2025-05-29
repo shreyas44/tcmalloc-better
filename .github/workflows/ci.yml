@@ -52,6 +52,50 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
+  rust-build-release:
+    name: Rust Build (Release)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --release
+
+  rust-test-release:
+    name: Rust Test (Release)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test
+        run: cargo test --workspace --release
+
   rust-test-8k:
     name: Rust Test (8k pages)
     runs-on: ubuntu-latest
