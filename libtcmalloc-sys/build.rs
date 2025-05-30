@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::env;
+use strum::{EnumIter, IntoEnumIterator};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, EnumIter)]
 enum PageSize {
     P8k,
     P32k,
@@ -13,12 +14,9 @@ enum PageSize {
 impl PageSize {
     fn from_env() -> Result<PageSize, Cow<'static, str>> {
         let page_size_cell = OnceCell::new();
-        for (feature, page_size) in [
-            ("CARGO_FEATURE_8K_PAGES", PageSize::P8k),
-            ("CARGO_FEATURE_32K_PAGES", PageSize::P32k),
-            ("CARGO_FEATURE_256K_PAGES", PageSize::P256k),
-            ("CARGO_FEATURE_SMALL_BUT_SLOW", PageSize::PSmall),
-        ] {
+        for (page_size, feature) in
+            PageSize::iter().map(|page_size| (page_size, page_size.feature()))
+        {
             if env::var_os(feature).is_some() {
                 page_size_cell
                     .set(page_size)
@@ -36,6 +34,15 @@ impl PageSize {
             PageSize::P32k => "TCMALLOC_INTERNAL_32K_PAGES",
             PageSize::P256k => "TCMALLOC_INTERNAL_256K_PAGES",
             PageSize::PSmall => "TCMALLOC_INTERNAL_SMALL_BUT_SLOW",
+        }
+    }
+
+    fn feature(self) -> &'static str {
+        match self {
+            PageSize::P8k => "CARGO_FEATURE_8K_PAGES",
+            PageSize::P32k => "CARGO_FEATURE_32K_PAGES",
+            PageSize::P256k => "CARGO_FEATURE_256K_PAGES",
+            PageSize::PSmall => "CARGO_FEATURE_SMALL_BUT_SLOW",
         }
     }
 }
