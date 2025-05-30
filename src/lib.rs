@@ -33,9 +33,6 @@
 mod extension;
 
 use core::alloc::{GlobalAlloc, Layout};
-use libtcmalloc_sys::{
-    TCMallocInternalDeleteSizedAligned, TCMallocInternalNewAlignedNothrowBridge,
-};
 
 /// A memory allocator that can be registered as the standard library’s default
 /// through the `#[global_allocator]` attribute.
@@ -44,17 +41,44 @@ pub struct TCMalloc;
 unsafe impl GlobalAlloc for TCMalloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe { TCMallocInternalNewAlignedNothrowBridge(layout.size(), layout.align()) as *mut u8 }
+        unsafe {
+            libtcmalloc_sys::BridgeTCMallocInternalNewAlignedNothrow(layout.size(), layout.align())
+                as *mut u8
+        }
     }
 
+    #[cfg(not(feature = "realloc"))]
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         unsafe {
-            TCMallocInternalDeleteSizedAligned(
+            libtcmalloc_sys::TCMallocInternalDeleteSizedAligned(
                 ptr as *mut core::ffi::c_void,
                 layout.size(),
                 layout.align(),
             );
+        }
+    }
+
+    #[cfg(feature = "realloc")]
+    #[inline]
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe {
+            libtcmalloc_sys::TCMallocInternalDeleteAligned(
+                ptr as *mut core::ffi::c_void,
+                layout.align(),
+            );
+        }
+    }
+
+    #[cfg(feature = "realloc")]
+    #[inline]
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        unsafe {
+            libtcmalloc_sys::BridgeReallocAligned(
+                ptr as *mut core::ffi::c_void,
+                new_size,
+                layout.align(),
+            ) as *mut u8
         }
     }
 }
