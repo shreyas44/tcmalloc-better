@@ -229,6 +229,28 @@ jobs:
       - name: Test (legacy locking)
         run: cargo test --workspace --features legacy_locking
 
+  rust-test-realloc:
+    name: Rust Test (realloc)
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test (realloc)
+        run: cargo test --workspace --features realloc
+
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest

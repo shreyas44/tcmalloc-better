@@ -49,6 +49,11 @@ deprecated_perthread = ["libtcmalloc-sys/deprecated_perthread"]
 ## Use legacy locking for systems with disabled HugeTLB
 ## See [TCMalloc docs](https://github.com/google/tcmalloc/blob/master/docs/design.md#tcmalloc-backend)
 legacy_locking = ["libtcmalloc-sys/legacy_locking"]
+## Use TCMalloc's realloc instead of default [`GlobalAlloc::realloc`].
+## Caveats: All memory deallocations will use the slower TCMallocInternalDeleteAligned (which accesses the page map).
+## Enable this feature only if you frequently use shrink operations on collections,
+## and only after performance measurement or benchmarking.
+realloc = []
 
 #! ### Logical Page Sizes (These features are mutually exclusive).
 #! Larger page size leads to greater performance in expense to increased fragmentation.

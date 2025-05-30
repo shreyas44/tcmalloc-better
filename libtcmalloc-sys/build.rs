@@ -204,7 +204,6 @@ fn main() {
         "c_src/tcmalloc/tcmalloc/static_vars.cc",
         "c_src/tcmalloc/tcmalloc/stats.cc",
         "c_src/tcmalloc/tcmalloc/system-alloc.cc",
-        "c_src/tcmalloc/tcmalloc/tcmalloc.cc",
         "c_src/tcmalloc/tcmalloc/thread_cache.cc",
         "c_src/tcmalloc/tcmalloc/transfer_cache.cc",
         "c_src/malloc_bridge.cc",
