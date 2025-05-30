@@ -7,10 +7,18 @@ extern "C" {
         return TCMallocInternalNewAlignedNothrow(size, alignment, std::nothrow);
     }
 
-    // this is the copy of do_realloc with alignment acceptance
-    ABSL_ATTRIBUTE_UNUSED ABSL_CACHELINE_ALIGNED void* BridgeReallocAligned(
-        void* old_ptr, size_t new_size, std::align_val_t alignment
+    // this code is base on do_realloc with alignment acceptance and without copying
+    // rust make copying better than generic memcpy due to knowledge of properly alignment
+    // and regions is not overlapped
+    ABSL_ATTRIBUTE_UNUSED ABSL_CACHELINE_ALIGNED void* BridgePrepareReallocAligned(
+        void* old_ptr, size_t new_size, std::align_val_t alignment, size_t* old_size_p
     ) {
+      TC_ASSERT(absl::has_single_bit(static_cast<size_t>(alignment)));
+      if (new_size == 0) {
+        // UB in rust
+        return nullptr;
+      }
+
       tc_globals.InitIfNecessary();
       // Get the size of the old entry
       const size_t old_size = GetSize(old_ptr);
@@ -60,14 +68,14 @@ extern "C" {
         }
         if (new_ptr == nullptr) {
           // Either new_size is not a tiny increment, or last fast_alloc failed.
-          new_ptr = BridgeTCMallocInternalNewAlignedNothrow(new_size, alignment);
+          new_ptr = fast_alloc(new_size, CppPolicy().Nothrow().AlignAs(alignment));
         }
         if (new_ptr == nullptr) {
           return nullptr;
         }
-        memcpy(new_ptr, old_ptr, std::min(old_size, new_size));
 
-        TCMallocInternalDeleteSizedAligned(old_ptr, old_size, alignment);
+        *old_size_p = old_size;
+
         return new_ptr;
       } else {
         return old_ptr;
