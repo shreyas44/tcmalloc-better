@@ -41,45 +41,57 @@ pub struct TCMalloc;
 unsafe impl GlobalAlloc for TCMalloc {
     #[inline]
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe {
-            libtcmalloc_sys::BridgeTCMallocInternalNewAlignedNothrow(layout.size(), layout.align())
-                as *mut u8
-        }
+        let (size, alignment) = (layout.size(), layout.align());
+        let ptr =
+            unsafe { libtcmalloc_sys::BridgeTCMallocInternalNewAlignedNothrow(size, alignment) };
+        ptr as *mut u8
     }
 
     #[cfg(not(feature = "realloc"))]
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        let ptr = ptr as *mut core::ffi::c_void;
+        let (size, alignment) = (layout.size(), layout.align());
         unsafe {
-            libtcmalloc_sys::TCMallocInternalDeleteSizedAligned(
-                ptr as *mut core::ffi::c_void,
-                layout.size(),
-                layout.align(),
-            );
+            libtcmalloc_sys::TCMallocInternalDeleteSizedAligned(ptr, size, alignment);
         }
     }
 
     #[cfg(feature = "realloc")]
     #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        let ptr = ptr as *mut core::ffi::c_void;
+        let alignment = layout.align();
         unsafe {
-            libtcmalloc_sys::TCMallocInternalDeleteAligned(
-                ptr as *mut core::ffi::c_void,
-                layout.align(),
-            );
+            libtcmalloc_sys::TCMallocInternalDeleteAligned(ptr, alignment);
         }
     }
 
     #[cfg(feature = "realloc")]
-    #[inline]
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        unsafe {
-            libtcmalloc_sys::BridgeReallocAligned(
-                ptr as *mut core::ffi::c_void,
+        let mut old_size_to_free = Default::default();
+        let alignment = layout.align();
+        let ptr = ptr as *mut core::ffi::c_void;
+        let new_ptr = unsafe {
+            libtcmalloc_sys::BridgePrepareReallocAligned(
+                ptr,
                 new_size,
-                layout.align(),
-            ) as *mut u8
+                alignment,
+                &mut old_size_to_free,
+            )
+        };
+        if !new_ptr.is_null() && new_ptr != ptr {
+            let size_to_copy = layout.size().min(new_size);
+            unsafe { core::ptr::copy_nonoverlapping(ptr, new_ptr, size_to_copy) };
+            unsafe {
+                libtcmalloc_sys::TCMallocInternalDeleteSizedAligned(
+                    ptr,
+                    old_size_to_free,
+                    alignment,
+                )
+            };
         }
+        new_ptr as *mut u8
     }
 }
 

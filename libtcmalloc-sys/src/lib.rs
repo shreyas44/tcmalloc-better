@@ -46,17 +46,21 @@ unsafe extern "C" {
     /// Performance is lower than [`TCMallocInternalDeleteSizedAligned`].
     pub fn TCMallocInternalDeleteAligned(ptr: *mut core::ffi::c_void, alignment: libc::size_t);
 
-    /// Reallocate previously allocated memory.
+    /// Prepare to reallocate previously allocated memory.
+    ///
+    /// Caller should do the real data migration if returned pointer is not the same as `old_ptr`.
+    /// Client should copy bytes manually and then free old_ptr.
     ///
     /// The pointer `old_ptr` must have been allocated before.
     ///
     /// The `alignment` must match the one used to allocate `old_ptr`.
     ///
-    /// Returned pointer should freed with [`TCMallocInternalDeleteAligned`].
-    pub fn BridgeReallocAligned(
+    /// Returns null pointer if allocation failed or `new_size` is 0.
+    pub fn BridgePrepareReallocAligned(
         old_ptr: *mut core::ffi::c_void,
         new_size: libc::size_t,
         alignment: libc::size_t,
+        old_size: *mut libc::size_t,
     ) -> *mut core::ffi::c_void;
 }
 
