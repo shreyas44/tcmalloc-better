@@ -193,7 +193,6 @@ fn main() {
         "c_src/tcmalloc/tcmalloc/pagemap.cc",
         "c_src/tcmalloc/tcmalloc/parameters.cc",
         "c_src/tcmalloc/tcmalloc/peak_heap_tracker.cc",
-        "c_src/tcmalloc/tcmalloc/reuse_size_classes.cc",
         "c_src/tcmalloc/tcmalloc/sampler.cc",
         "c_src/tcmalloc/tcmalloc/segv_handler.cc",
         "c_src/tcmalloc/tcmalloc/selsan/selsan.cc",
