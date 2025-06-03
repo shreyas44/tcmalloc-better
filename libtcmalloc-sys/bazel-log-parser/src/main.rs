@@ -1,10 +1,10 @@
 use anyhow::{Result, anyhow};
+use clap::Parser;
 use std::cell::OnceCell;
-use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashSet};
-use std::env;
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 
 #[derive(Default)]
 struct CompileParams<'a> {
@@ -19,52 +19,17 @@ struct CompileParams<'a> {
     g: Option<&'a str>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct MergedCompileParams {
-    defines: HashSet<String>,
-    w_all: HashSet<bool>,
-    w_extra: HashSet<bool>,
-    w_error: HashSet<bool>,
-    warns: HashSet<String>,
-    flags: HashSet<String>,
-    std: HashSet<Option<String>>,
-    i_quote: HashSet<String>,
-    g: HashSet<Option<String>>,
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct SortedCompileParams {
-    defines: Vec<String>,
-    w_all: Vec<bool>,
-    w_extra: Vec<bool>,
-    w_error: Vec<bool>,
-    warns: Vec<String>,
-    flags: Vec<String>,
-    std: Vec<Option<String>>,
-    i_quote: Vec<String>,
-    g: Vec<Option<String>>,
-}
-
-impl From<MergedCompileParams> for SortedCompileParams {
-    fn from(value: MergedCompileParams) -> Self {
-        SortedCompileParams {
-            defines: sort(value.defines.into_iter().collect()),
-            w_all: sort(value.w_all.into_iter().collect()),
-            w_extra: sort(value.w_extra.into_iter().collect()),
-            w_error: sort(value.w_error.into_iter().collect()),
-            warns: sort(value.warns.into_iter().collect()),
-            flags: sort(value.flags.into_iter().collect()),
-            std: sort(value.std.into_iter().collect()),
-            i_quote: sort(value.i_quote.into_iter().collect()),
-            g: sort(value.g.into_iter().collect()),
-        }
-    }
-}
-
-fn sort<T: Ord>(mut v: Vec<T>) -> Vec<T> {
-    v.sort();
-    v
+    defines: BTreeSet<String>,
+    w_all: BTreeSet<bool>,
+    w_extra: BTreeSet<bool>,
+    w_error: BTreeSet<bool>,
+    warns: BTreeSet<String>,
+    flags: BTreeSet<String>,
+    std: BTreeSet<Option<String>>,
+    i_quote: BTreeSet<String>,
+    g: BTreeSet<Option<String>>,
 }
 
 impl MergedCompileParams {
@@ -81,7 +46,7 @@ impl MergedCompileParams {
     }
 }
 
-fn extend(set: &mut HashSet<String>, values: &[&str]) {
+fn extend(set: &mut BTreeSet<String>, values: &[&str]) {
     for &value in values {
         if !set.contains(value) {
             set.insert(value.to_string());
@@ -89,19 +54,47 @@ fn extend(set: &mut HashSet<String>, values: &[&str]) {
     }
 }
 
-// tool for analyzing bazel build logs
-// bazel build -j 1 --subcommands //tcmalloc:tcmalloc 2> build.log
-// cargo run -- [-q] build.log
+/// Tool for analyzing bazel build logs.
+///
+/// Example to use:
+///
+/// Execute inside `path_to_tcmalloc_dir`
+///
+/// $ bazel clean
+///
+/// $ bazel build --subcommands 'target' 2> build.log
+///
+/// (where 'target'  is a bazel build target, for example: //tcmalloc:tcmalloc):
+///
+/// Then execute inside this crate:
+///
+/// $ cargo run -p bazel-log-parser -- path_to_tcmalloc_dir/build.log
+#[derive(Parser)]
+struct Args {
+    /// Log filename to parse
+    log_name: PathBuf,
+    #[arg(short = 'q')]
+    /// Disable per line output
+    disable_per_line_output: bool,
+    /// Disable file list output
+    #[arg(short = 'l')]
+    disable_file_list_output: bool,
+}
+
 fn main() -> Result<()> {
-    let args: Vec<_> = env::args().skip(1).collect();
-    let log_name = args.last().expect("expected build log name");
-    let disable_per_line_output = args.iter().any(|arg| arg == "-q");
-    let disable_file_list_output = args.iter().any(|arg| arg == "-l");
-    let log_file = BufReader::new(File::open(log_name)?);
-    let mut it = log_file.lines().fuse().peekable();
+    let Args {
+        log_name,
+        disable_per_line_output,
+        disable_file_list_output,
+    } = Args::parse();
+    let mut source_files = if disable_file_list_output {
+        None
+    } else {
+        Some(BTreeSet::new())
+    };
     let mut i = 0usize;
     let mut merged = MergedCompileParams::default();
-    let mut source_files = BinaryHeap::new();
+    let mut it = BufReader::new(File::open(log_name)?).lines().peekable();
     while let Some(line) = it.next() {
         let line = line?;
         const SUBCOMMAND: &str = "SUBCOMMAND: # ";
@@ -157,10 +150,10 @@ fn main() -> Result<()> {
             while let Some(&arg) = it.next() {
                 let arg = strip_quotes(arg)?;
                 match arg.as_bytes() {
-                    [b'-', b'W', b'a', b'l', b'l'] => compile_params.w_all = true,
-                    [b'-', b'W', b'e', b'x', b't', b'r', b'a'] => compile_params.w_extra = true,
-                    [b'-', b'W', b'e', b'r', b'r', b'o', b'r'] => compile_params.w_error = true,
-                    [b'-', b'o'] => output
+                    b"-Wall" => compile_params.w_all = true,
+                    b"-Wextra" => compile_params.w_extra = true,
+                    b"-Werror" => compile_params.w_error = true,
+                    b"-o" => output
                         .set(
                             it.next()
                                 .copied()
@@ -169,8 +162,8 @@ fn main() -> Result<()> {
                         .map_err(|err| {
                             anyhow!("duplicate output: {err}, already was {output:?}")
                         })?,
-                    [b'-', b'c']
-                    | [b'-', b'M', b'D']
+                    b"-c"
+                    | b"-MD"
                     | [
                         b'-',
                         b'f',
@@ -188,10 +181,10 @@ fn main() -> Result<()> {
                         b'=',
                         ..,
                     ] => {}
-                    [b'-', b'M', b'F'] => {
+                    b"-MF" => {
                         it.next().ok_or_else(|| anyhow!("expected value for -MF"))?;
                     }
-                    [b'-', b'i', b'q', b'u', b'o', b't', b'e'] => compile_params.i_quote.push(
+                    b"-iquote" => compile_params.i_quote.push(
                         it.next()
                             .copied()
                             .ok_or_else(|| anyhow!("expected value for -iqoute"))?,
@@ -228,15 +221,11 @@ fn main() -> Result<()> {
                 .into_inner()
                 .ok_or_else(|| anyhow!("output not found"))?;
             i += 1;
-            merged.merge(&compile_params);
-            if !disable_file_list_output {
-                source_files.push(Reverse(source_file.to_string()));
-            }
             if !disable_per_line_output {
                 println!(
                     "{i} - {source_file}: {input} o:{output} std:{std:?} g:{g:?} wall:{w_all} \
-                    wextra:{w_extra} werror:{w_error} D:{defines:?} F:{flags:?} W:{warns:?}\
-                     I:{includes:?}",
+                    wextra:{w_extra} werror:{w_error} D:{defines:?} F:{flags:?} W:{warns:?} \
+                    I:{includes:?}",
                     std = compile_params.std,
                     w_all = compile_params.w_all,
                     w_extra = compile_params.w_extra,
@@ -248,15 +237,21 @@ fn main() -> Result<()> {
                     g = compile_params.g,
                 );
             }
+            merged.merge(&compile_params);
+            if let Some(source_files) = &mut source_files {
+                if source_files.contains(source_file) {
+                    println!("Duplicate source file: {source_file}");
+                } else {
+                    source_files.insert(source_file.to_string());
+                }
+            }
         }
     }
-    println!("{:#?}", SortedCompileParams::from(merged));
-    if !disable_file_list_output {
-        println!("[");
-        while let Some(Reverse(source_file)) = source_files.pop() {
-            println!("    \"{source_file}\",");
-        }
-        println!("]");
+    // Close the file
+    drop(it);
+    println!("{merged:#?}");
+    if let Some(source_files) = &source_files {
+        println!("{source_files:#?}");
     }
     Ok(())
 }

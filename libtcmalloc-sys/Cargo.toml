@@ -44,7 +44,8 @@ document-features = "0.2"
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
-parsepatch = "0.3"
+itertools = "0.14"
+patch = "0.7"
 strum = { version = "0.27", features = ["derive"] }
 
 [features]

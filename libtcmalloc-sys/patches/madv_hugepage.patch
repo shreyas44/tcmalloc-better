@@ -1,5 +1,5 @@
 diff --git a/tcmalloc/system-alloc.cc b/tcmalloc/system-alloc.cc
-index a81677ef..404d9923 100644
+index a81677ef..cbe29e34 100644
 --- a/tcmalloc/system-alloc.cc
 +++ b/tcmalloc/system-alloc.cc
 @@ -32,6 +32,7 @@
@@ -10,7 +10,7 @@ index a81677ef..404d9923 100644
  #include "tcmalloc/internal/logging.h"
  #include "tcmalloc/internal/page_size.h"
  #include "tcmalloc/malloc_extension.h"
-@@ -103,3 +104,29 @@ int MapFixedNoReplaceFlagAvailable() {
+@@ -103,3 +104,27 @@ int MapFixedNoReplaceFlagAvailable() {
  
  }  // namespace tcmalloc::tcmalloc_internal::system_allocator_internal
  GOOGLE_MALLOC_SECTION_END
@@ -18,30 +18,28 @@ index a81677ef..404d9923 100644
 +namespace rust_patches {
 +#ifdef TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR
 +[[nodiscard]] bool should_not_madvise_hugepage() {
-+  ABSL_CONST_INIT static bool result;
++  ABSL_CONST_INIT static std::atomic<bool> result {false};
 +  ABSL_CONST_INIT static absl::once_flag flag;
 +  absl::base_internal::LowLevelCallOnce(&flag, [&]() {
-+    const char* e = thread_safe_getenv("TCMALLOC_DISABLE_MADV_HUGEPAGE");
++    const char* e = tcmalloc::tcmalloc_internal::thread_safe_getenv("TCMALLOC_DISABLE_MADV_HUGEPAGE");
 +    if (e) {
 +      switch (e[0]) {
 +        case '0':
-+          result = false;
 +          break;
 +        case '1':
-+          result = true;
++          result.store(true, std::memory_order_release);
 +          break;
 +        default:
-+          result = false;
 +          TC_BUG("bad env var TCMALLOC_DISABLE_MADV_HUGEPAGE value = '%s'", e);
 +      }
 +    }
 +  });
-+  return result;
++  return result.load(std::memory_order_acquire);
 +}
 +#endif // TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR
 +} // namespace rust_patches
 diff --git a/tcmalloc/system-alloc.h b/tcmalloc/system-alloc.h
-index 06a0f1aa..f0fa8f4c 100644
+index 06a0f1aa..3c3979f2 100644
 --- a/tcmalloc/system-alloc.h
 +++ b/tcmalloc/system-alloc.h
 @@ -61,6 +61,20 @@
@@ -50,15 +48,15 @@ index 06a0f1aa..f0fa8f4c 100644
  
 +namespace rust_patches {
 +#ifdef TCMALLOC_DISABLE_MADV_HUGEPAGE_ALWAYS
-+  [[nodiscard]] constexpr bool should_not_madvise_hugepage() {
-+    return true;
-+  }
++[[nodiscard]] constexpr bool should_not_madvise_hugepage() {
++  return true;
++}
 +#elif defined(TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR)
-+  [[nodiscard]] bool should_not_madvise_hugepage();
++[[nodiscard]] bool should_not_madvise_hugepage();
 +#else
-+  [[nodiscard]] constexpr bool should_not_madvise_hugepage() {
-+    return false;
-+  }
++[[nodiscard]] constexpr bool should_not_madvise_hugepage() {
++  return false;
++}
 +#endif
 +} // namespace rust_patches
 +

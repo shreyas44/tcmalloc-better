@@ -7,9 +7,10 @@ extern "C" {
         return TCMallocInternalNewAlignedNothrow(size, alignment, std::nothrow);
     }
 
-    // this code is base on do_realloc with alignment acceptance and without copying
-    // rust make copying better than generic memcpy due to knowledge of properly alignment
-    // and regions is not overlapped
+    // This code is based on `do_realloc` with alignment acceptance and without copying.
+    // Rust code should make copying with the knowledge of properly alignment.
+    //
+    // TODO: migrate whole realloc logic to rust
     ABSL_ATTRIBUTE_UNUSED ABSL_CACHELINE_ALIGNED void* BridgePrepareReallocAligned(
         void* old_ptr, size_t new_size, std::align_val_t alignment, size_t* old_size_p
     ) {
