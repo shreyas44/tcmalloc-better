@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12](https://github.com/maratik123/tcmalloc-better/compare/libtcmalloc-sys-v0.1.11...libtcmalloc-sys-v0.1.12) - 2025-06-16
+
+### Fixed
+
+- fix docs
+
 ## [0.1.11](https://github.com/maratik123/tcmalloc-better/compare/libtcmalloc-sys-v0.1.10...libtcmalloc-sys-v0.1.11) - 2025-06-16
 
 ### Other
