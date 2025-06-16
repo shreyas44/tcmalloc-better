@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15](https://github.com/maratik123/tcmalloc-better/compare/tcmalloc-better-v0.1.14...tcmalloc-better-v0.1.15) - 2025-06-16
+
+### Other
+
+- upver
+- finish with madv thp
+- temp
+- Merge remote-tracking branch 'origin/main' into madvise
+- upver
+- Merge remote-tracking branch 'origin/main' into madvise
+
 ## [0.1.14](https://github.com/maratik123/tcmalloc-better/compare/tcmalloc-better-v0.1.13...tcmalloc-better-v0.1.14) - 2025-06-03
 
 ### Other
