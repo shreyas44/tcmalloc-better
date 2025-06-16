@@ -472,7 +472,7 @@ fn apply_patch<'a: 'c, 'b: 'c, 'c>(
     old_data: &'b str,
 ) -> Vec<&'c str> {
     let old_lines: Vec<&str> = old_data.lines().collect();
-    let mut new_lines: Vec<&str> = Vec::with_capacity(old_lines.len() + 1);
+    let mut new_lines = Vec::with_capacity(old_lines.len() + 1);
     let mut old_line_i = 0;
     for hunk in hunks {
         let limit = hunk.old_range.start.saturating_sub(1) as usize;
