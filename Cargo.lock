@@ -273,7 +273,7 @@ checksum = "d8cfeafaffdbc32176b64fb251369d52ea9f0a8fbc6f8759edffef7b525d64bb"
 
 [[package]]
 name = "libtcmalloc-sys"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "cc",
  "document-features",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "tcmalloc-better"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "document-features",
  "libtcmalloc-sys",
