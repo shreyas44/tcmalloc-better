@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19](https://github.com/maratik123/tcmalloc-better/compare/tcmalloc-better-v0.1.18...tcmalloc-better-v0.1.19) - 2025-06-16
+
+### Fixed
+
+- fix docs
+
+### Other
+
+- Update tcmalloc dependency
+
 ## [0.1.18](https://github.com/maratik123/tcmalloc-better/compare/tcmalloc-better-v0.1.17...tcmalloc-better-v0.1.18) - 2025-06-16
 
 ### Other
