@@ -46,13 +46,16 @@ extension = ["libtcmalloc-sys/extension"]
 numa_aware = ["libtcmalloc-sys/numa_aware"]
 ## Use deprecated per-thread caching. Newer systems with Linux kernel version >= 4.18 should not use this.
 deprecated_perthread = ["libtcmalloc-sys/deprecated_perthread"]
-## Use legacy locking for systems with disabled HugeTLB
+## Use legacy locking backend (which is not TLB-aware)
 ## See [TCMalloc docs](https://github.com/google/tcmalloc/blob/master/docs/design.md#tcmalloc-backend)
 legacy_locking = ["libtcmalloc-sys/legacy_locking"]
 ## Use TCMalloc's realloc instead of default [`GlobalAlloc::realloc`].
-## Caveats: All memory deallocations will use the slower `TCMallocInternalDeleteAligned` (which accesses slow page map).
-## Enable this feature only if you frequently use shrink operations on collections
-## (which frees not more than 50% of collection capacity), and only after performance measurement or benchmarking.
+## Caveats: All memory deallocations will use the slower unsized `TCMallocInternalDeleteAligned`
+## (which accesses slow page map).
+## Enable this feature only if you frequently use realloc operations which resides in same size class or same
+## `kPageSize`-sized blocks, and only after performance measurements or benchmarking.
+## Rust standard library uses realloc of such conditions mainly for manually shrinking operations. Reallocation for
+## growing operation increments size twice, so it will not be the same size class anyway in such case.
 realloc = []
 
 #! ### Logical Page Sizes (These features are mutually exclusive).
@@ -69,7 +72,7 @@ realloc = []
 small_but_slow = ["libtcmalloc-sys/small_but_slow"]
 
 #! ### Madvise Transparent Hugepages control (Use no more than one value)
-#! By default, if none of these features are enabled, madvise hugepages will be enabled.
+#! By default, if none of these features are enabled, madvise hugepages will be enabled:
 
 ## Disable madvise hugepages
 disable_madv_hugepage_always = ["libtcmalloc-sys/disable_madv_hugepage_always"]
