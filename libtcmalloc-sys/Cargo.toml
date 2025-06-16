@@ -59,7 +59,7 @@ deprecated_perthread = []
 ## Use legacy locking. See [TCMalloc docs](https://github.com/google/tcmalloc/blob/master/docs/design.md#tcmalloc-backend)
 legacy_locking = []
 
-#! Logical Page Sizes (These features are mutually exclusive).
+#! ### Logical Page Sizes (These features are mutually exclusive).
 #! Larger page size leads to greater performance in expense to increased fragmentation.
 #! See [TCMalloc tuning guide](https://github.com/google/tcmalloc/blob/master/docs/tuning.md#the-logical-page-size-for-tcmalloc)
 
@@ -72,7 +72,7 @@ legacy_locking = []
 ## 4k pages, option for memory-constrained systems
 small_but_slow = []
 
-#! Madvise Transparent Hugepages control (Use no more than one value)
+#! ### Madvise Transparent Hugepages control (Use no more than one value)
 #! By default, if none of these features are enabled, madvise hugepages will be enabled.
 
 ## Disable madvise hugepages
