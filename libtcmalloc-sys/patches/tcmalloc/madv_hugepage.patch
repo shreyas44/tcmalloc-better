@@ -16,7 +16,7 @@ index a81677ef..cbe29e34 100644
  GOOGLE_MALLOC_SECTION_END
 +
 +namespace rust_patches {
-+#ifdef TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR
++#ifdef RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR
 +[[nodiscard]] bool should_not_madvise_hugepage() {
 +  ABSL_CONST_INIT static std::atomic<bool> result {false};
 +  ABSL_CONST_INIT static absl::once_flag flag;
@@ -36,7 +36,7 @@ index a81677ef..cbe29e34 100644
 +  });
 +  return result.load(std::memory_order_acquire);
 +}
-+#endif // TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR
++#endif // RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR
 +} // namespace rust_patches
 diff --git a/tcmalloc/system-alloc.h b/tcmalloc/system-alloc.h
 index 06a0f1aa..3c3979f2 100644
@@ -47,11 +47,11 @@ index 06a0f1aa..3c3979f2 100644
  #endif
  
 +namespace rust_patches {
-+#ifdef TCMALLOC_DISABLE_MADV_HUGEPAGE_ALWAYS
++#ifdef RUST_PATCHES_DISABLE_MADV_HUGEPAGE_ALWAYS
 +[[nodiscard]] constexpr bool should_not_madvise_hugepage() {
 +  return true;
 +}
-+#elif defined(TCMALLOC_DISABLE_MADV_HUGEPAGE_BY_VAR)
++#elif defined(RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR)
 +[[nodiscard]] bool should_not_madvise_hugepage();
 +#else
 +[[nodiscard]] constexpr bool should_not_madvise_hugepage() {

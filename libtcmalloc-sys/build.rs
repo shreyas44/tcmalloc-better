@@ -1,15 +1,14 @@
-use itertools::Itertools;
-use patch::Patch;
+use patch::{Hunk, Line, Patch};
 use std::borrow::Cow;
 use std::cell::OnceCell;
-use std::collections::HashMap;
-use std::ffi::OsString;
-use std::fs::Metadata;
-use std::hash::{BuildHasher, DefaultHasher, Hash, Hasher, RandomState};
-use std::os::raw;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::{env, fs, random};
+use std::{env, fs};
 use strum::{EnumIter, IntoEnumIterator};
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 #[derive(Debug, Copy, Clone, EnumIter)]
 enum PageSize {
@@ -26,9 +25,12 @@ impl PageSize {
             PageSize::iter().map(|page_size| (page_size, page_size.feature()))
         {
             if env::var_os(feature).is_some() {
-                page_size_cell
-                    .set(page_size)
-                    .map_err(|err| format!("Can not set up more than one page size, already defined = {page_size_cell:?}, new one = {err:?}"))?;
+                page_size_cell.set(page_size).map_err(|err| {
+                    format!(
+                        "Can not set up more than one page size, \
+                        already defined = {page_size_cell:?}, new one = {err:?}"
+                    )
+                })?;
             }
         }
         Ok(page_size_cell
@@ -51,6 +53,47 @@ impl PageSize {
             PageSize::P32k => "CARGO_FEATURE_32K_PAGES",
             PageSize::P256k => "CARGO_FEATURE_256K_PAGES",
             PageSize::PSmall => "CARGO_FEATURE_SMALL_BUT_SLOW",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, EnumIter)]
+enum MadviseHugePages {
+    Always,
+    ByVar,
+}
+
+impl MadviseHugePages {
+    fn from_env() -> Result<Option<Self>, String> {
+        let madvise_huge_pages_cell = OnceCell::new();
+        for (madvise_huge_pages, feature) in MadviseHugePages::iter()
+            .map(|madvise_huge_pages| (madvise_huge_pages, madvise_huge_pages.feature()))
+        {
+            if env::var_os(feature).is_some() {
+                madvise_huge_pages_cell
+                    .set(madvise_huge_pages)
+                    .map_err(|err| {
+                        format!(
+                            "Can not set up more than one madvise huge pages feature, \
+                        already defined = {madvise_huge_pages_cell:?}, new one = {err:?}"
+                        )
+                    })?;
+            }
+        }
+        Ok(madvise_huge_pages_cell.get().copied())
+    }
+
+    fn to_define(self) -> &'static str {
+        match self {
+            MadviseHugePages::Always => "RUST_PATCHES_DISABLE_MADV_HUGEPAGE_ALWAYS",
+            MadviseHugePages::ByVar => "RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR",
+        }
+    }
+
+    fn feature(self) -> &'static str {
+        match self {
+            MadviseHugePages::Always => "CARGO_FEATURE_DISABLE_MADV_HUGEPAGE_ALWAYS",
+            MadviseHugePages::ByVar => "CARGO_FEATURE_DISABLE_MADV_HUGEPAGE_BY_VAR",
         }
     }
 }
@@ -251,6 +294,9 @@ fn compile(src_dir: impl AsRef<Path>) {
     if env::var_os("CARGO_FEATURE_NUMA_AWARE").is_some() {
         cc.define("TCMALLOC_INTERNAL_NUMA_AWARE", None);
     }
+    if let Some(disable_madv_hugepages) = MadviseHugePages::from_env().unwrap() {
+        cc.define(disable_madv_hugepages.to_define(), None);
+    }
     if match env::var_os("DEBUG") {
         Some(debug) => debug.is_empty() || debug == "0" || debug == "false",
         None => true,
@@ -299,79 +345,189 @@ fn compile(src_dir: impl AsRef<Path>) {
     cc.compile("tcmalloc");
 }
 
-#[derive(Default)]
-struct RandNameGenerator {
-    rand: RandomState,
-    counter: usize,
-}
-
-impl RandNameGenerator {
-    fn tmp_name(&mut self, name: &str) -> String {
-        let counter = self.counter;
-        self.counter = self.counter.wrapping_add(1);
-        let mut hasher = self.rand.build_hasher();
-        counter.hash(&mut hasher);
-        format!("{name}-{:016x}", hasher.finish())
+fn create_dir(path: &Path) {
+    let is_not_dir_if_exists = match path.metadata() {
+        Ok(metadata) => Some(!metadata.is_dir()),
+        Err(_) => None,
+    };
+    if is_not_dir_if_exists.unwrap_or(false) {
+        fs::remove_file(path).unwrap();
     }
-
-    fn uniq_name(&mut self, path: impl AsRef<Path>, name: &str) -> PathBuf {
-        let path = path.as_ref();
-        for _ in 0..10 {
-            let output = path.join(self.tmp_name(name));
-            if !output.exists() {
-                return output;
-            }
-        }
-        panic!("Could not find a unique name for {:?}", path.join(name));
+    if is_not_dir_if_exists.unwrap_or(true) {
+        fs::create_dir(path).unwrap();
     }
 }
 
-fn patch_deps() -> PathBuf {
-    let mut rand = RandNameGenerator::default();
-    let mut out_dir = rand.uniq_name(env::var_os("OUT_DIR").unwrap(), "patched_deps");
-    fs::create_dir(&out_dir).unwrap();
-    let c_src = PathBuf::from("c_src");
-    let c_src_out = out_dir.join(&c_src);
-    fs::create_dir(c_src_out).unwrap();
-
-    let patch_contents: HashMap<PathBuf, Vec<_>> = fs::read_dir("patches")
-        .unwrap()
-        .map(|entry| {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if entry.file_type().unwrap().is_dir() {
-                panic!("Patch entry {path:?} is a directory");
-            }
-            fs::read_to_string(path).unwrap()
-        })
-        .collect();
-    let patches: HashMap<PathBuf, Vec<_>> = patch_contents
-        .iter()
-        .flat_map(|(path, sources)| Patch::from_multiple(s).unwrap())
-        .collect();
-
-    let mut in_dirs_stack = vec![c_src];
+fn copy_files(c_src: &Path, out_dir: &Path) {
+    let mut in_dirs_stack = vec![Cow::Borrowed(c_src)];
     while let Some(in_dir) = in_dirs_stack.pop() {
+        create_dir(&out_dir.join(&in_dir));
         for in_entry in fs::read_dir(in_dir).unwrap() {
             let in_entry = in_entry.unwrap();
-            if in_entry
+            let in_path = in_entry.path();
+            if in_path
                 .file_name()
-                .to_str()
-                .filter(|s| s.starts_with(".git"))
-                .is_some()
+                .unwrap()
+                .as_encoded_bytes()
+                .starts_with(b".")
             {
                 continue;
             }
-            let in_path = in_entry.path();
-            let out_path = out_dir.join(&in_path);
-            if in_entry.file_type().unwrap().is_dir() {
-                fs::create_dir(out_path).unwrap();
-                in_dirs_stack.push(in_path);
+            let in_file_type = in_entry.file_type().unwrap();
+            if in_file_type.is_dir() {
+                in_dirs_stack.push(Cow::Owned(in_path));
+            } else if in_file_type.is_file() {
+                let out_path = out_dir.join(&in_path);
+                println!("cargo::rerun-if-changed={}", in_path.display());
+                fs::copy(in_path, &out_path).unwrap();
+                let mut perms = out_path.metadata().unwrap().permissions();
+                if cfg!(unix) || perms.readonly() {
+                    #[cfg(unix)]
+                    perms.set_mode(perms.mode() | 0o600);
+                    #[cfg(not(unix))]
+                    perms.set_readonly(false);
+                    fs::set_permissions(out_path, perms).unwrap();
+                }
             } else {
-                fs::copy(in_path, out_path).unwrap();
+                panic!("unknown file type of {in_path:?}: {in_file_type:?}");
             }
         }
     }
+}
+
+fn apply_patches(c_src: &Path, out_dir: &Path) {
+    let mut in_dir_stack = vec![(Cow::Borrowed(Path::new("patches")), out_dir.join(c_src))];
+
+    while let Some((in_dir, patch_target_dir)) = in_dir_stack.pop() {
+        for patch_entry in match fs::read_dir(&in_dir) {
+            Ok(patch_entry) => patch_entry,
+            Err(err) => panic!("failed to read patch directory {in_dir:?}: {err}"),
+        } {
+            let patch_entry = patch_entry.unwrap();
+            let patch_path = patch_entry.path();
+            let patch_file_type = patch_entry.file_type().unwrap();
+            if patch_file_type.is_dir() {
+                in_dir_stack.push((
+                    Cow::Owned(patch_path),
+                    patch_target_dir.join(patch_entry.file_name()),
+                ));
+            } else if patch_file_type.is_file() {
+                println!("cargo::rerun-if-changed={}", patch_path.display());
+                let patch = fs::read_to_string(patch_path).unwrap();
+                for patch in Patch::from_multiple(&patch).unwrap() {
+                    let old_path = match patch.old.path.as_ref() {
+                        "" | "/dev/null" => None,
+                        path => Some(
+                            patch_target_dir
+                                .join(Path::new(path.strip_prefix("a/").unwrap_or(path))),
+                        ),
+                    };
+                    let new_path = match patch.new.path.as_ref() {
+                        "" | "/dev/null" => None,
+                        path => Some(
+                            patch_target_dir
+                                .join(Path::new(path.strip_prefix("b/").unwrap_or(path))),
+                        ),
+                    };
+                    if let Some(new_path) = new_path {
+                        let old_data = match &old_path {
+                            None => Cow::Borrowed(""),
+                            Some(old_path) => Cow::Owned(match fs::read_to_string(old_path) {
+                                Ok(old_data) => old_data,
+                                Err(e) => panic!("failed to read {old_path:?}: {e}"),
+                            }),
+                        };
+                        let new_data =
+                            apply_patch(patch.hunks, patch.end_newline, old_data.as_ref());
+                        if old_path.is_none() {
+                            if let Some(parent) = patch_target_dir.parent() {
+                                fs::create_dir_all(parent).unwrap();
+                            }
+                        }
+                        let mut file = BufWriter::new(File::create(new_path).unwrap());
+                        let mut new_data = new_data.into_iter();
+                        if let Some(first_line) = new_data.next() {
+                            write!(file, "{first_line}").unwrap();
+                            for new_line in new_data {
+                                writeln!(file).unwrap();
+                                write!(file, "{new_line}").unwrap();
+                            }
+                        }
+                        file.flush().unwrap();
+                    } else {
+                        let old_path = old_path.unwrap();
+                        fs::remove_file(old_path).unwrap();
+                    }
+                }
+            } else {
+                panic!("unknown file type of {patch_path:?}: {patch_file_type:?}");
+            }
+        }
+    }
+}
+
+fn apply_patch<'a: 'c, 'b: 'c, 'c>(
+    hunks: Vec<Hunk<'a>>,
+    end_newline: bool,
+    old_data: &'b str,
+) -> Vec<&'c str> {
+    let old_lines: Vec<&str> = old_data.lines().collect();
+    let mut new_lines: Vec<&str> = Vec::with_capacity(old_lines.len());
+    let mut old_line_i = 0;
+    for hunk in hunks {
+        while hunk.old_range.start != 0 && old_line_i < (hunk.old_range.start - 1) as usize {
+            new_lines.push(old_lines[old_line_i]);
+            old_line_i += 1;
+        }
+        for line in hunk.lines {
+            match line {
+                Line::Context(line) => {
+                    let old = old_lines.get(old_line_i);
+                    if old != Some(&line) {
+                        panic!(
+                            "line mismatch at {old_line_i}: {old:?} != {:?}",
+                            Some(&line)
+                        );
+                    }
+                    if old_line_i < old_lines.len() {
+                        new_lines.push(line);
+                    }
+                    old_line_i += 1;
+                }
+                Line::Add(s) => new_lines.push(s),
+                Line::Remove(line) => {
+                    if old_lines[old_line_i] != line {
+                        panic!(
+                            "line mismatch at {old_line_i}: {} != {line}",
+                            old_lines[old_line_i]
+                        )
+                    }
+                    old_line_i += 1;
+                }
+            }
+        }
+    }
+    if let Some(old_lines) = old_lines.get(old_line_i..) {
+        for line in old_lines {
+            new_lines.push(line);
+        }
+    }
+    if end_newline || old_data.ends_with('\n') {
+        new_lines.push("");
+    }
+    new_lines
+}
+
+fn patch_deps() -> PathBuf {
+    let mut out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    out_dir.push("patched_deps");
+    create_dir(&out_dir);
+
+    let c_src = Path::new("c_src");
+
+    copy_files(c_src, &out_dir);
+    apply_patches(c_src, &out_dir);
+
     out_dir
 }
 

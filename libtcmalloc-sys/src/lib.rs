@@ -48,7 +48,7 @@ unsafe extern "C" {
 
     /// Prepare to reallocate previously allocated memory.
     ///
-    /// Caller should do the real data migration if returned pointer is not the same as `old_ptr`.
+    /// Caller should do the real data migration if a returned pointer is not the same as `old_ptr`.
     /// Client should copy bytes manually and then free old_ptr.
     ///
     /// The pointer `old_ptr` must have been allocated before.
@@ -56,6 +56,8 @@ unsafe extern "C" {
     /// The `alignment` must match the one used to allocate `old_ptr`.
     ///
     /// Returns null pointer if allocation failed or `new_size` is 0.
+    ///
+    /// `old_size` will be set to the original size of the memory block.
     pub fn BridgePrepareReallocAligned(
         old_ptr: *mut core::ffi::c_void,
         new_size: libc::size_t,

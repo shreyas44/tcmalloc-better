@@ -44,7 +44,6 @@ document-features = "0.2"
 
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
-itertools = "0.14"
 patch = "0.7"
 strum = { version = "0.27", features = ["derive"] }
 
@@ -70,8 +69,16 @@ legacy_locking = []
 32k_pages = []
 ## 256k pages
 256k_pages = []
-## 4k pages, option for memory constrained systems
+## 4k pages, option for memory-constrained systems
 small_but_slow = []
+
+#! Madvise Transparent Hugepages control
+
+## Disable madvise hugepages
+disable_madv_hugepage_always = []
+## Disable madvise hugepages via environment variable `TCMALLOC_DISABLE_MADV_HUGEPAGE` at runtime.
+## This variable can be set to `0` or `1` to enable or disable madvise hugepages respectively.
+disable_madv_hugepage_by_var = []
 
 [package.metadata.docs.rs]
 features = ["extension", "8k_pages"]
