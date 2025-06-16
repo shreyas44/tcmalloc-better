@@ -68,6 +68,14 @@ realloc = []
 ## 4k pages, option for memory constrained systems
 small_but_slow = ["libtcmalloc-sys/small_but_slow"]
 
+#! Madvise Transparent Hugepages control (Use no more than one value)
+#! By default, if none of these features are enabled, madvise hugepages will be enabled.
+
+## Disable madvise hugepages
+disable_madv_hugepage_always = ["libtcmalloc-sys/disable_madv_hugepage_always"]
+## Disable madvise hugepages via environment variable `TCMALLOC_DISABLE_MADV_HUGEPAGE` at runtime.
+## This variable can be set to `0` or `1` to enable or disable madvise hugepages respectively.
+disable_madv_hugepage_by_var = ["libtcmalloc-sys/disable_madv_hugepage_by_var"]
 
 [package.metadata.docs.rs]
 features = ["std", "extension", "8k_pages"]
