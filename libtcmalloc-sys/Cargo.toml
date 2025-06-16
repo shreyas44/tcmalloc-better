@@ -72,7 +72,8 @@ legacy_locking = []
 ## 4k pages, option for memory-constrained systems
 small_but_slow = []
 
-#! Madvise Transparent Hugepages control
+#! Madvise Transparent Hugepages control (Use no more than one value)
+#! By default, if none of these features are enabled, madvise hugepages will be enabled.
 
 ## Disable madvise hugepages
 disable_madv_hugepage_always = []

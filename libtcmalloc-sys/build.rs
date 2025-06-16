@@ -472,7 +472,7 @@ fn apply_patch<'a: 'c, 'b: 'c, 'c>(
     old_data: &'b str,
 ) -> Vec<&'c str> {
     let old_lines: Vec<&str> = old_data.lines().collect();
-    let mut new_lines: Vec<&str> = Vec::with_capacity(old_lines.len());
+    let mut new_lines: Vec<&str> = Vec::with_capacity(old_lines.len() + 1);
     let mut old_line_i = 0;
     for hunk in hunks {
         while hunk.old_range.start != 0 && old_line_i < (hunk.old_range.start - 1) as usize {
