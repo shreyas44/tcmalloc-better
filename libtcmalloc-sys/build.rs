@@ -483,21 +483,17 @@ fn apply_patch<'a: 'c, 'b: 'c, 'c>(
             old_line_i = limit;
         }
         for line in hunk.lines {
-            let check_old_line = |line| {
-                let old = old_lines.get(old_line_i).copied();
-                if old != Some(line) {
-                    panic!("line mismatch at {old_line_i}: {old:?} != {:?}", Some(line));
-                }
-            };
             let line_str = match line {
-                Line::Context(line) => line,
-                Line::Remove(line) => line,
-                Line::Add(line) => line,
+                Line::Context(line_str) | Line::Remove(line_str) => {
+                    let line_str = match old_lines.get(old_line_i).copied() {
+                        Some(old_line) if old_line == line_str => old_line,
+                        old => panic!("line mismatch at {old_line_i}: {old:?} != {line_str:?}"),
+                    };
+                    old_line_i += 1;
+                    line_str
+                }
+                Line::Add(line_str) => line_str,
             };
-            if matches!(line, Line::Context(_) | Line::Remove(_)) {
-                check_old_line(line_str);
-                old_line_i += 1;
-            }
             if matches!(line, Line::Context(_) | Line::Add(_)) {
                 new_lines.push(line_str);
             }
