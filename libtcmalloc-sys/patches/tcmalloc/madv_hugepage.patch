@@ -1,5 +1,5 @@
 diff --git a/tcmalloc/system-alloc.cc b/tcmalloc/system-alloc.cc
-index a81677ef..cbe29e34 100644
+index a81677ef..381d1acd 100644
 --- a/tcmalloc/system-alloc.cc
 +++ b/tcmalloc/system-alloc.cc
 @@ -32,6 +32,7 @@
@@ -39,7 +39,7 @@ index a81677ef..cbe29e34 100644
 +#endif // RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR
 +} // namespace rust_patches
 diff --git a/tcmalloc/system-alloc.h b/tcmalloc/system-alloc.h
-index 06a0f1aa..3c3979f2 100644
+index 51283aa8..add0fa62 100644
 --- a/tcmalloc/system-alloc.h
 +++ b/tcmalloc/system-alloc.h
 @@ -61,6 +61,20 @@
