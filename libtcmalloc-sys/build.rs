@@ -448,9 +448,9 @@ fn apply_patches(c_src: &Path, out_dir: &Path) {
                         let mut new_data = new_data.into_iter();
                         if let Some(first_line) = new_data.next() {
                             write!(file, "{first_line}").unwrap();
-                            for new_line in new_data {
+                            for line in new_data {
                                 writeln!(file).unwrap();
-                                write!(file, "{new_line}").unwrap();
+                                write!(file, "{line}").unwrap();
                             }
                         }
                         file.flush().unwrap();
@@ -475,42 +475,36 @@ fn apply_patch<'a: 'c, 'b: 'c, 'c>(
     let mut new_lines: Vec<&str> = Vec::with_capacity(old_lines.len() + 1);
     let mut old_line_i = 0;
     for hunk in hunks {
-        while hunk.old_range.start != 0 && old_line_i < (hunk.old_range.start - 1) as usize {
-            new_lines.push(old_lines[old_line_i]);
-            old_line_i += 1;
+        let limit = hunk.old_range.start.saturating_sub(1) as usize;
+        if old_line_i < limit {
+            if let Some(old_lines) = old_lines.get(old_line_i..limit) {
+                new_lines.extend(old_lines);
+            }
+            old_line_i = limit;
         }
         for line in hunk.lines {
-            match line {
-                Line::Context(line) => {
-                    let old = old_lines.get(old_line_i);
-                    if old != Some(&line) {
-                        panic!(
-                            "line mismatch at {old_line_i}: {old:?} != {:?}",
-                            Some(&line)
-                        );
-                    }
-                    if old_line_i < old_lines.len() {
-                        new_lines.push(line);
-                    }
-                    old_line_i += 1;
+            let check_old_line = |line| {
+                let old = old_lines.get(old_line_i).copied();
+                if old != Some(line) {
+                    panic!("line mismatch at {old_line_i}: {old:?} != {:?}", Some(line));
                 }
-                Line::Add(s) => new_lines.push(s),
-                Line::Remove(line) => {
-                    if old_lines[old_line_i] != line {
-                        panic!(
-                            "line mismatch at {old_line_i}: {} != {line}",
-                            old_lines[old_line_i]
-                        )
-                    }
-                    old_line_i += 1;
-                }
+            };
+            let line_str = match line {
+                Line::Context(line) => line,
+                Line::Remove(line) => line,
+                Line::Add(line) => line,
+            };
+            if matches!(line, Line::Context(_) | Line::Remove(_)) {
+                check_old_line(line_str);
+                old_line_i += 1;
+            }
+            if matches!(line, Line::Context(_) | Line::Add(_)) {
+                new_lines.push(line_str);
             }
         }
     }
     if let Some(old_lines) = old_lines.get(old_line_i..) {
-        for line in old_lines {
-            new_lines.push(line);
-        }
+        new_lines.extend(old_lines);
     }
     if end_newline || old_data.ends_with('\n') {
         new_lines.push("");
