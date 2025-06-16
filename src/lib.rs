@@ -69,16 +69,19 @@ unsafe impl GlobalAlloc for TCMalloc {
 
     #[cfg(feature = "realloc")]
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        let mut old_size_to_free = Default::default();
         let alignment = layout.align();
         let ptr = ptr as *mut core::ffi::c_void;
-        let new_ptr = unsafe {
-            libtcmalloc_sys::BridgePrepareReallocAligned(
-                ptr,
-                new_size,
-                alignment,
-                &mut old_size_to_free,
-            )
+        let mut old_size_to_free = Default::default();
+        let new_ptr = {
+            let old_size_to_free = &mut old_size_to_free;
+            unsafe {
+                libtcmalloc_sys::BridgePrepareReallocAligned(
+                    ptr,
+                    new_size,
+                    alignment,
+                    old_size_to_free,
+                )
+            }
         };
         if !new_ptr.is_null() && new_ptr != ptr {
             let size_to_copy = layout.size().min(new_size);

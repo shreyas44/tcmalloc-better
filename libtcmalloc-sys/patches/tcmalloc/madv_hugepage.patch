@@ -1,0 +1,85 @@
+diff --git a/tcmalloc/system-alloc.cc b/tcmalloc/system-alloc.cc
+index a81677ef..cbe29e34 100644
+--- a/tcmalloc/system-alloc.cc
++++ b/tcmalloc/system-alloc.cc
+@@ -32,6 +32,7 @@
+ #include "absl/numeric/bits.h"
+ #include "absl/types/span.h"
+ #include "tcmalloc/internal/config.h"
++#include "tcmalloc/internal/environment.h"
+ #include "tcmalloc/internal/logging.h"
+ #include "tcmalloc/internal/page_size.h"
+ #include "tcmalloc/malloc_extension.h"
+@@ -103,3 +104,27 @@ int MapFixedNoReplaceFlagAvailable() {
+ 
+ }  // namespace tcmalloc::tcmalloc_internal::system_allocator_internal
+ GOOGLE_MALLOC_SECTION_END
++
++namespace rust_patches {
++#ifdef RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR
++[[nodiscard]] bool should_not_madvise_hugepage() {
++  ABSL_CONST_INIT static std::atomic<bool> result {false};
++  ABSL_CONST_INIT static absl::once_flag flag;
++  absl::base_internal::LowLevelCallOnce(&flag, [&]() {
++    const char* e = tcmalloc::tcmalloc_internal::thread_safe_getenv("TCMALLOC_DISABLE_MADV_HUGEPAGE");
++    if (e) {
++      switch (e[0]) {
++        case '0':
++          break;
++        case '1':
++          result.store(true, std::memory_order_release);
++          break;
++        default:
++          TC_BUG("bad env var TCMALLOC_DISABLE_MADV_HUGEPAGE value = '%s'", e);
++      }
++    }
++  });
++  return result.load(std::memory_order_acquire);
++}
++#endif // RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR
++} // namespace rust_patches
+diff --git a/tcmalloc/system-alloc.h b/tcmalloc/system-alloc.h
+index 06a0f1aa..3c3979f2 100644
+--- a/tcmalloc/system-alloc.h
++++ b/tcmalloc/system-alloc.h
+@@ -61,6 +61,20 @@
+ #define PR_SET_VMA_ANON_NAME 0
+ #endif
+ 
++namespace rust_patches {
++#ifdef RUST_PATCHES_DISABLE_MADV_HUGEPAGE_ALWAYS
++[[nodiscard]] constexpr bool should_not_madvise_hugepage() {
++  return true;
++}
++#elif defined(RUST_PATCHES_DISABLE_MADV_HUGEPAGE_BY_VAR)
++[[nodiscard]] bool should_not_madvise_hugepage();
++#else
++[[nodiscard]] constexpr bool should_not_madvise_hugepage() {
++  return false;
++}
++#endif
++} // namespace rust_patches
++
+ GOOGLE_MALLOC_SECTION_BEGIN
+ namespace tcmalloc {
+ namespace tcmalloc_internal {
+@@ -508,6 +522,7 @@ void* SystemAllocator<Topology>::MmapAlignedLocked(size_t size,
+     next_addr = RandomMmapHint(size, alignment, tag);
+   }
+   const int map_fixed_noreplace_flag = MapFixedNoReplaceFlagAvailable();
++  const bool should_not_madvise_hugepage_flag = rust_patches::should_not_madvise_hugepage();
+   void* hint;
+   // Avoid clobbering errno, especially if an initial mmap fails but a
+   // subsequent one succeeds.  If we fail to allocate memory, MallocOomPolicy
+@@ -520,6 +535,11 @@ void* SystemAllocator<Topology>::MmapAlignedLocked(size_t size,
+ 
+     void* result = mmap(hint, size, PROT_NONE, flags, -1, 0);
+     if (result == hint) {
++      if (!should_not_madvise_hugepage_flag) {
++        // Avoid clobbering errno. Ignore if madvise fails.
++        ErrnoRestorer errno_restorer_madv;
++        madvise(result, size, MADV_HUGEPAGE);
++      }
+       if (numa_partition.has_value()) {
+         BindMemory(result, size, *numa_partition);
+       }
