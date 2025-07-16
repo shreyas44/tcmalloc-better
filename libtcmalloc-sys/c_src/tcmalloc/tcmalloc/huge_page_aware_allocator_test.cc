@@ -257,9 +257,7 @@ class HugePageAwareAllocatorTest
     return allocator_->ReleaseAtLeastNPages(k, reason);
   }
 
-  void TreatHugepageTrackers(bool enable_collapse) {
-    allocator_->TreatHugepageTrackers(enable_collapse);
-  }
+  void TryHugepageCollapse() { allocator_->TryHugepageCollapse(); }
 
   Length ReleaseAtLeastNPagesBreakingHugepages(Length n,
                                                PageReleaseReason reason) {
@@ -1603,7 +1601,7 @@ TEST_P(HugePageAwareAllocatorTest, ParallelRelease) {
       benchmark::DoNotOptimize(Print());
       return;
     } else if (thread_id == 2) {
-      TreatHugepageTrackers(/*enable_collapse=*/true);
+      TryHugepageCollapse();
       return;
     }
 
@@ -1652,7 +1650,7 @@ TEST_P(HugePageAwareAllocatorTest, StressCollapse) {
     absl::BitGen rng;
     while (!done.load(std::memory_order_acquire)) {
       allocator_->forwarder().set_collapse_succeeds(absl::Bernoulli(rng, 0.5));
-      TreatHugepageTrackers(/*enable_collapse=*/true);
+      TryHugepageCollapse();
     }
   };
 

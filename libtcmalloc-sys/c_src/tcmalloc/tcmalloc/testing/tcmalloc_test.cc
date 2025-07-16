@@ -69,7 +69,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "tcmalloc/alloc_at_least.h"
 #include "tcmalloc/common.h"
 #include "tcmalloc/huge_pages.h"
 #include "tcmalloc/internal/config.h"
@@ -193,19 +192,18 @@ TEST(TcmallocTest, Calloc) {
 }
 
 TEST(TcmallocTest, Realloc) {
+  // When sampling, we always reallocate as we record the requested and actual
+  // allocation sizes during the original allocation. During reallocation, we
+  // would have to attempt to update this recorded state. Since sampling is
+  // random, we turn off sampling to make sure that doesn't happen to us here.
+  ScopedNeverSample never_sample;
+
   // Test that realloc doesn't always reallocate and copy memory.
   constexpr int kLargeSize = (1 << 20) - (1 << 10);
   ASSERT_GT(kLargeSize, tcmalloc_internal::kMaxSize);
   constexpr int start_sizes[] = {100, 1000, 10000, 100000, kLargeSize};
   constexpr int deltas[] = {1,   -2, 4,    -8,      16,
                             -32, 64, -128, 1 << 10, -(2 << 10)};
-
-  // When sampling, we always allocate in units of page-size, which makes
-  // reallocs of small sizes do extra work (thus, failing these checks).
-  // Since sampling is random, we turn off sampling to make sure that
-  // doesn't happen to us here. But very large blocks shouldn't be
-  // reallocated even with sampling.
-  ScopedNeverSample never_sample;
 
   for (int s = 0; s < sizeof(start_sizes) / sizeof(*start_sizes); ++s) {
     void* p = malloc(start_sizes[s]);
@@ -823,7 +821,7 @@ TEST(TCMallocTest, GetEstimatedAllocatedSizeHotCold) {
       auto [ptr, allocated_size] =
           __size_returning_new_hot_cold(size, hot_cold);
       ASSERT_EQ(rounded, allocated_size);
-      sized_delete(ptr, size);
+      free(ptr);
     }
   }
 }
@@ -865,23 +863,6 @@ TEST(TCMallocTest, b421895944) {
   memset(ptr, 0, realloc_size);
   benchmark::DoNotOptimize(ptr);
   free_sized(ptr, realloc_size);
-}
-
-TEST(TCMallocTest, b421895944_2) {
-  void* ptr = malloc(164471);
-  ASSERT_NE(ptr, nullptr);
-  void* newptr = realloc(ptr, 127823);
-  ASSERT_NE(newptr, nullptr);
-  free_sized(newptr, 127823);
-}
-
-TEST(TCMallocTest, b421895944_3) {
-  ScopedAlwaysSample always_sample;
-  void* ptr = malloc(388072);
-  ASSERT_NE(ptr, nullptr);
-  void* newptr = realloc(ptr, 388127);
-  ASSERT_NE(newptr, nullptr);
-  free_sized(newptr, 388127);
 }
 
 #ifndef NDEBUG
@@ -930,43 +911,6 @@ TEST(TCMallocTest, sdallocx_alignment) {
       memset(ptr, 0, size);
       benchmark::DoNotOptimize(ptr);
       sdallocx(ptr, size, MALLOCX_LG_ALIGN(align));
-    }
-  }
-}
-
-TEST(TCMallocTest, alloc_at_least) {
-  for (size_t size = 0; size <= 4096; size += 7) {
-    auto result = alloc_at_least(size);
-    ASSERT_GE(result.size, size);
-    memset(result.ptr, 0, size);
-    if (result.size > size) {
-      memset(static_cast<uint8_t*>(result.ptr) + size, 1, result.size - size);
-      void* ptr = realloc(result.ptr, result.size + 1);
-      ASSERT_NE(ptr, nullptr);
-      result.ptr = ptr;
-      ASSERT_GE(malloc_usable_size(result.ptr), result.size + 1);
-      for (size_t i = size; i < result.size; ++i) {
-        ASSERT_EQ(static_cast<uint8_t*>(result.ptr)[i], 1);
-      }
-      ++result.size;
-    }
-    benchmark::DoNotOptimize(result);
-    ASSERT_GE(malloc_usable_size(result.ptr), result.size);
-    free_sized(result.ptr, result.size);
-  }
-}
-
-TEST(TCMallocTest, aligned_alloc_at_least) {
-  for (size_t size = 7; size <= 4096; size += 7) {
-    for (size_t align = 0; align <= 10; align++) {
-      const size_t alignment = 1 << align;
-      auto result = aligned_alloc_at_least(alignment, size);
-      ASSERT_NE(result.ptr, nullptr) << alignment << " " << size;
-      ASSERT_EQ(reinterpret_cast<uintptr_t>(result.ptr) & (alignment - 1), 0);
-      ASSERT_GE(result.size, size);
-      memset(result.ptr, 0, result.size);
-      benchmark::DoNotOptimize(result);
-      free_aligned_sized(result.ptr, alignment, result.size);
     }
   }
 }

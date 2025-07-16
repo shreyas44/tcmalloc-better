@@ -29,10 +29,8 @@
 #include <new>
 
 #include "absl/base/attributes.h"
-#include "tcmalloc/alloc_at_least.h"
 #include "tcmalloc/internal/config.h"
 #include "tcmalloc/internal/declarations.h"  // IWYU pragma: keep
-#include "tcmalloc/malloc_extension.h"
 
 extern "C" {
 
@@ -40,11 +38,11 @@ ABSL_ATTRIBUTE_UNUSED void* TCMallocInternalMalloc(size_t size) noexcept
     ABSL_ATTRIBUTE_SECTION(google_malloc);
 ABSL_ATTRIBUTE_UNUSED void TCMallocInternalFree(void* ptr) noexcept
     ABSL_ATTRIBUTE_SECTION(google_malloc);
-ABSL_ATTRIBUTE_UNUSED void TCMallocInternalFreeSized(void* ptr,
-                                                     size_t size) noexcept
+ABSL_ATTRIBUTE_UNUSED void TCMallocInternalFreeSized(void* ptr, size_t size)
     ABSL_ATTRIBUTE_SECTION(google_malloc);
-ABSL_ATTRIBUTE_UNUSED void TCMallocInternalFreeAlignedSized(
-    void* ptr, size_t align, size_t size) noexcept
+ABSL_ATTRIBUTE_UNUSED void TCMallocInternalFreeAlignedSized(void* ptr,
+                                                            size_t align,
+                                                            size_t size)
     ABSL_ATTRIBUTE_SECTION(google_malloc);
 ABSL_ATTRIBUTE_UNUSED void TCMallocInternalSdallocx(void* ptr, size_t size,
                                                     int flags) noexcept
@@ -92,12 +90,6 @@ ABSL_ATTRIBUTE_UNUSED struct mallinfo2 TCMallocInternalMallInfo2(void) noexcept
 #endif
 ABSL_ATTRIBUTE_UNUSED int TCMallocInternalMallocInfo(int opts,
                                                      FILE* fp) noexcept
-    ABSL_ATTRIBUTE_SECTION(google_malloc);
-
-ABSL_ATTRIBUTE_UNUSED alloc_result_t TCMallocInternalAllocAtLeast(
-    size_t min_size) noexcept ABSL_ATTRIBUTE_SECTION(google_malloc);
-ABSL_ATTRIBUTE_UNUSED alloc_result_t
-TCMallocInternalAlignedAllocAtLeast(size_t alignment, size_t min_size) noexcept
     ABSL_ATTRIBUTE_SECTION(google_malloc);
 
 // This is an alias for MallocExtension::GetAllocatedSize().
@@ -163,11 +155,6 @@ ABSL_ATTRIBUTE_UNUSED void TCMallocInternalDeleteArrayNothrow(
     ABSL_ATTRIBUTE_SECTION(google_malloc);
 ABSL_ATTRIBUTE_UNUSED void TCMallocInternalDeleteArrayAlignedNothrow(
     void* p, std::align_val_t alignment, const std::nothrow_t&) noexcept
-    ABSL_ATTRIBUTE_SECTION(google_malloc);
-ABSL_ATTRIBUTE_UNUSED __sized_ptr_t TCMallocInternalSizeReturningNew(
-    size_t size) ABSL_ATTRIBUTE_SECTION(google_malloc);
-ABSL_ATTRIBUTE_UNUSED __sized_ptr_t
-TCMallocInternalSizeReturningNewAligned(size_t size, std::align_val_t alignment)
     ABSL_ATTRIBUTE_SECTION(google_malloc);
 #endif
 

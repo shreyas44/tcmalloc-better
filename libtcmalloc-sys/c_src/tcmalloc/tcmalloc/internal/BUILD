@@ -96,11 +96,7 @@ cc_library(
     visibility = [
         "//tcmalloc:__subpackages__",
     ],
-    deps = [
-        ":config",
-        ":logging",
-        "@com_google_absl//absl/base:core_headers",
-    ],
+    deps = [":config"],
 )
 
 cc_library(

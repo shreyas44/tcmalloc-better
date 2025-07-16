@@ -17,25 +17,10 @@
 # Description:
 # Tests for tcmalloc, including a performance test.
 
-load("//tcmalloc:copts.bzl", "TCMALLOC_DEFAULT_COPTS", "TCMALLOC_DEFAULT_CXXOPTS")
+load("//tcmalloc:copts.bzl", "TCMALLOC_DEFAULT_COPTS")
 load("//tcmalloc:variants.bzl", "create_tcmalloc_benchmark_suite", "create_tcmalloc_testsuite")
 
 licenses(["notice"])
-
-cc_library(
-    name = "malloc_hook_recorder",
-    testonly = 1,
-    srcs = ["malloc_hook_recorder.cc"],
-    hdrs = ["malloc_hook_recorder.h"],
-    copts = TCMALLOC_DEFAULT_COPTS,
-    deps = [
-        "//tcmalloc:malloc_hook",
-        "//tcmalloc/internal:logging",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:malloc_internal",
-        "@com_google_absl//absl/debugging:stacktrace",
-    ],
-)
 
 cc_library(
     name = "testutil",
@@ -76,7 +61,6 @@ create_tcmalloc_testsuite(
         ":test_allocator_harness",
         ":testutil",
         ":thread_manager",
-        "//tcmalloc:alloc_at_least",
         "//tcmalloc:malloc_extension",
         "//tcmalloc/internal:config",
         "//tcmalloc/internal:declarations",
@@ -120,30 +104,6 @@ create_tcmalloc_benchmark_suite(
     ],
 )
 
-cc_test(
-    name = "tcmalloc_fuzzer",
-    srcs = ["tcmalloc_fuzzer.cc"],
-    copts = TCMALLOC_DEFAULT_COPTS + TCMALLOC_DEFAULT_CXXOPTS,
-    malloc = "//tcmalloc/internal:system_malloc",
-    tags = [
-        "noasan",
-        "nomsan",
-        "notsan",
-        "noubsan",
-    ],
-    visibility = ["//visibility:private"],
-    deps = [
-        "//tcmalloc:common_8k_pages",
-        "//tcmalloc:tcmalloc_internal_methods_only",  # buildcleaner: keep
-        "//tcmalloc/internal:logging",
-        "//tcmalloc/internal:page_size",
-        "@com_google_absl//absl/numeric:bits",
-        "@com_google_fuzztest//fuzztest",
-        "@com_google_fuzztest//fuzztest:init_fuzztest",
-        "@com_google_googletest//:gtest",
-    ],
-)
-
 create_tcmalloc_testsuite(
     name = "hooks_test",
     srcs = ["hooks_test.cc"],
@@ -156,14 +116,11 @@ create_tcmalloc_testsuite(
         "notsan",
     ],
     deps = [
-        ":malloc_hook_recorder",
-        ":testutil",
         "//tcmalloc:malloc_extension",
         "//tcmalloc:malloc_hook",
         "//tcmalloc/internal:allocation_guard",
-        "//tcmalloc/internal:declarations",
         "//tcmalloc/internal:logging",
-        "@com_github_google_benchmark//:benchmark",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:malloc_internal",
         "@com_google_absl//absl/debugging:leak_check",
         "@com_google_googletest//:gtest_main",
@@ -1069,14 +1026,5 @@ create_tcmalloc_testsuite(
     deps = [
         "//tcmalloc/internal:numa",
         "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "alloc_at_least_test",
-    srcs = ["alloc_at_least_test.c"],
-    copts = TCMALLOC_DEFAULT_COPTS,
-    deps = [
-        "//tcmalloc:alloc_at_least",
     ],
 )

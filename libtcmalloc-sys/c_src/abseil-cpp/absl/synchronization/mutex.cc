@@ -226,7 +226,7 @@ static bool AtomicSetBits(std::atomic<intptr_t>* pv, intptr_t bits,
 
 // Data for doing deadlock detection.
 ABSL_CONST_INIT static absl::base_internal::SpinLock deadlock_graph_mu(
-    base_internal::SCHEDULE_KERNEL_ONLY);
+    absl::kConstInit, base_internal::SCHEDULE_KERNEL_ONLY);
 
 // Graph used to detect deadlocks.
 ABSL_CONST_INIT static GraphCycles* deadlock_graph
@@ -292,7 +292,7 @@ static const struct {
 };
 
 ABSL_CONST_INIT static absl::base_internal::SpinLock synch_event_mu(
-    base_internal::SCHEDULE_KERNEL_ONLY);
+    absl::kConstInit, base_internal::SCHEDULE_KERNEL_ONLY);
 
 // Hash table size; should be prime > 2.
 // Can't be too small, as it's used for deadlock detection information.
@@ -509,10 +509,10 @@ struct SynchWaitParams {
   const Condition* cond;   // The condition that this thread is waiting for.
                            // In Mutex, this field is set to zero if a timeout
                            // expires.
-  KernelTimeout timeout;   // timeout expiry---absolute time
-                           // In Mutex, this field is set to zero if a timeout
-                           // expires.
-  Mutex* const cvmu;       // used for transfer from cond var to mutex
+  KernelTimeout timeout;  // timeout expiry---absolute time
+                          // In Mutex, this field is set to zero if a timeout
+                          // expires.
+  Mutex* const cvmu;      // used for transfer from cond var to mutex
   PerThreadSynch* const thread;  // thread that is waiting
 
   // If not null, thread should be enqueued on the CondVar whose state
@@ -650,13 +650,6 @@ static const intptr_t kMuWrWait = 0x0020L;
 static const intptr_t kMuSpin = 0x0040L;  // spinlock protects wait list
 static const intptr_t kMuLow = 0x00ffL;   // mask all mutex bits
 static const intptr_t kMuHigh = ~kMuLow;  // mask pointer/reader count
-
-static_assert((0xab & (kMuWriter | kMuReader)) == (kMuWriter | kMuReader),
-              "The debug allocator's uninitialized pattern (0xab) must be an "
-              "invalid mutex state");
-static_assert((0xcd & (kMuWriter | kMuReader)) == (kMuWriter | kMuReader),
-              "The debug allocator's freed pattern (0xcd) must be an invalid "
-              "mutex state");
 
 // Hack to make constant values available to gdb pretty printer
 enum {
@@ -1327,7 +1320,8 @@ static char* StackString(void** pcs, int n, char* buf, int maxlen,
   char sym[kSymLen];
   int len = 0;
   for (int i = 0; i != n; i++) {
-    if (len >= maxlen) return buf;
+    if (len >= maxlen)
+      return buf;
     size_t count = static_cast<size_t>(maxlen - len);
     if (symbolize) {
       if (!absl::Symbolize(pcs[i], sym, kSymLen)) {
@@ -1338,7 +1332,7 @@ static char* StackString(void** pcs, int n, char* buf, int maxlen,
     } else {
       snprintf(buf + len, count, " %p", pcs[i]);
     }
-    len += static_cast<int>(strlen(&buf[len]));
+    len += strlen(&buf[len]);
   }
   return buf;
 }
@@ -1719,44 +1713,25 @@ void Mutex::Unlock() {
   // NOTE: optimized out when kDebugMode is false.
   bool should_try_cas = ((v & (kMuEvent | kMuWriter)) == kMuWriter &&
                          (v & (kMuWait | kMuDesig)) != kMuWait);
-
   // But, we can use an alternate computation of it, that compilers
   // currently don't find on their own.  When that changes, this function
   // can be simplified.
-  //
-  // should_try_cas is true iff the bits satisfy the following conditions:
-  //
-  //                   Ev Wr Wa De
-  // equal to           0  1
-  // and not equal to         1  0
-  //
-  // after xoring by    0  1  0  1,  this is equivalent to:
-  //
-  // equal to           0  0
-  // and not equal to         1  1,  which is the same as:
-  //
-  // smaller than       0  0  1  1
-  static_assert(kMuEvent > kMuWait, "Needed for should_try_cas_fast");
-  static_assert(kMuEvent > kMuDesig, "Needed for should_try_cas_fast");
-  static_assert(kMuWriter > kMuWait, "Needed for should_try_cas_fast");
-  static_assert(kMuWriter > kMuDesig, "Needed for should_try_cas_fast");
-
-  bool should_try_cas_fast =
-      ((v ^ (kMuWriter | kMuDesig)) &
-       (kMuEvent | kMuWriter | kMuWait | kMuDesig)) < (kMuWait | kMuDesig);
-
-  if (kDebugMode && should_try_cas != should_try_cas_fast) {
+  intptr_t x = (v ^ (kMuWriter | kMuWait)) & (kMuWriter | kMuEvent);
+  intptr_t y = (v ^ (kMuWriter | kMuWait)) & (kMuWait | kMuDesig);
+  // Claim: "x == 0 && y > 0" is equal to should_try_cas.
+  // Also, because kMuWriter and kMuEvent exceed kMuDesig and kMuWait,
+  // all possible non-zero values for x exceed all possible values for y.
+  // Therefore, (x == 0 && y > 0) == (x < y).
+  if (kDebugMode && should_try_cas != (x < y)) {
     // We would usually use PRIdPTR here, but is not correctly implemented
     // within the android toolchain.
     ABSL_RAW_LOG(FATAL, "internal logic error %llx %llx %llx\n",
-                 static_cast<long long>(v),
-                 static_cast<long long>(should_try_cas),
-                 static_cast<long long>(should_try_cas_fast));
+                 static_cast<long long>(v), static_cast<long long>(x),
+                 static_cast<long long>(y));
   }
-  if (should_try_cas_fast &&
-      mu_.compare_exchange_strong(v, v & ~(kMuWrWait | kMuWriter),
-                                  std::memory_order_release,
-                                  std::memory_order_relaxed)) {
+  if (x < y && mu_.compare_exchange_strong(v, v & ~(kMuWrWait | kMuWriter),
+                                           std::memory_order_release,
+                                           std::memory_order_relaxed)) {
     // fast writer release (writer with no waiters or with designated waker)
   } else {
     this->UnlockSlow(nullptr /*no waitp*/);  // take slow path
@@ -2285,7 +2260,7 @@ ABSL_ATTRIBUTE_NOINLINE void Mutex::UnlockSlow(SynchWaitParams* waitp) {
         // set up to walk the list
         PerThreadSynch* w_walk;   // current waiter during list walk
         PerThreadSynch* pw_walk;  // previous waiter during list walk
-        if (old_h != nullptr) {   // we've searched up to old_h before
+        if (old_h != nullptr) {  // we've searched up to old_h before
           pw_walk = old_h;
           w_walk = old_h->next;
         } else {  // no prior search, start at beginning

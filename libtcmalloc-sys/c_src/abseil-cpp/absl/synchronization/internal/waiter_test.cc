@@ -108,10 +108,7 @@ TYPED_TEST_P(WaiterTest, WaitDurationWoken) {
       absl::synchronization_internal::KernelTimeout(absl::Seconds(10))));
   absl::Duration waited = absl::Now() - start;
   EXPECT_GE(waited, WithTolerance(absl::Milliseconds(500)));
-#ifndef _MSC_VER
-  // Skip on MSVC due to flakiness.
   EXPECT_LT(waited, absl::Seconds(2));
-#endif
 }
 
 TYPED_TEST_P(WaiterTest, WaitTimeWoken) {
@@ -129,10 +126,7 @@ TYPED_TEST_P(WaiterTest, WaitTimeWoken) {
       start + absl::Seconds(10))));
   absl::Duration waited = absl::Now() - start;
   EXPECT_GE(waited, WithTolerance(absl::Milliseconds(500)));
-  #ifndef _MSC_VER
-    // Skip on MSVC due to flakiness.
-    EXPECT_LT(waited, absl::Seconds(2));
-  #endif
+  EXPECT_LT(waited, absl::Seconds(2));
 }
 
 TYPED_TEST_P(WaiterTest, WaitDurationReached) {
@@ -142,10 +136,7 @@ TYPED_TEST_P(WaiterTest, WaitDurationReached) {
       absl::synchronization_internal::KernelTimeout(absl::Milliseconds(500))));
   absl::Duration waited = absl::Now() - start;
   EXPECT_GE(waited, WithTolerance(absl::Milliseconds(500)));
-  #ifndef _MSC_VER
-    // Skip on MSVC due to flakiness.
-    EXPECT_LT(waited, absl::Seconds(1));
-  #endif
+  EXPECT_LT(waited, absl::Seconds(1));
 }
 
 TYPED_TEST_P(WaiterTest, WaitTimeReached) {
@@ -155,10 +146,7 @@ TYPED_TEST_P(WaiterTest, WaitTimeReached) {
       start + absl::Milliseconds(500))));
   absl::Duration waited = absl::Now() - start;
   EXPECT_GE(waited, WithTolerance(absl::Milliseconds(500)));
-  #ifndef _MSC_VER
-    // Skip on MSVC due to flakiness.
-    EXPECT_LT(waited, absl::Seconds(1));
-  #endif
+  EXPECT_LT(waited, absl::Seconds(1));
 }
 
 REGISTER_TYPED_TEST_SUITE_P(WaiterTest,

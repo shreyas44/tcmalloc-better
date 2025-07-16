@@ -34,7 +34,7 @@
 #include "absl/base/config.h"
 #include "absl/meta/type_traits.h"
 
-#if defined(ABSL_USES_STD_STRING_VIEW) || defined(__ANDROID__)
+#if defined(ABSL_HAVE_STD_STRING_VIEW) || defined(__ANDROID__)
 // We don't control the death messaging when using std::string_view.
 // Android assert messages only go to system log, so death tests cannot inspect
 // the message for matching.
@@ -870,10 +870,38 @@ TEST(StringViewTest, FrontBackEmpty) {
 #endif
 }
 
-TEST(StringViewTest, DefaultConstructor) {
+// `std::string_view::string_view(const char*)` calls
+// `std::char_traits<char>::length(const char*)` to get the string length. In
+// libc++, it doesn't allow `nullptr` in the constexpr context, with the error
+// "read of dereferenced null pointer is not allowed in a constant expression".
+// At run time, the behavior of `std::char_traits::length()` on `nullptr` is
+// undefined by the standard and usually results in crash with libc++.
+// GCC also started rejected this in libstdc++ starting in GCC9.
+// In MSVC, creating a constexpr string_view from nullptr also triggers an
+// "unevaluable pointer value" error. This compiler implementation conforms
+// to the standard, but `absl::string_view` implements a different
+// behavior for historical reasons. We work around tests that construct
+// `string_view` from `nullptr` when using libc++.
+#if !defined(ABSL_USES_STD_STRING_VIEW) ||                    \
+    (!(defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE >= 9) && \
+     !defined(_LIBCPP_VERSION) && !defined(_MSC_VER))
+#define ABSL_HAVE_STRING_VIEW_FROM_NULLPTR 1
+#endif
+
+TEST(StringViewTest, NULLInput) {
   absl::string_view s;
   EXPECT_EQ(s.data(), nullptr);
   EXPECT_EQ(s.size(), 0u);
+
+#ifdef ABSL_HAVE_STRING_VIEW_FROM_NULLPTR
+  s = absl::string_view(nullptr);
+  EXPECT_EQ(s.data(), nullptr);
+  EXPECT_EQ(s.size(), 0u);
+
+  // .ToString() on a absl::string_view with nullptr should produce the empty
+  // string.
+  EXPECT_EQ("", std::string(s));
+#endif  // ABSL_HAVE_STRING_VIEW_FROM_NULLPTR
 }
 
 TEST(StringViewTest, Comparisons2) {
@@ -1048,12 +1076,9 @@ TEST(StringViewTest, ConstexprNullSafeStringView) {
 
 TEST(StringViewTest, ConstexprCompiles) {
   constexpr absl::string_view sp;
-  // With `-Wnonnull` turned on, there is no way to test the defensive null
-  // check in the `string_view(const char*)` constructor in a constexpr context,
-  // as the argument needs to be constexpr. The compiler will therefore always
-  // know at compile time that the argument is nullptr and complain because the
-  // parameter is annotated nonnull. We hence turn the warning off for this
-  // test.
+#ifdef ABSL_HAVE_STRING_VIEW_FROM_NULLPTR
+  constexpr absl::string_view cstr(nullptr);
+#endif
   constexpr absl::string_view cstr_len("cstr", 4);
 
 #if defined(ABSL_USES_STD_STRING_VIEW)
@@ -1081,7 +1106,7 @@ TEST(StringViewTest, ConstexprCompiles) {
 #endif
 
 // MSVC 2017+ should be able to construct a constexpr string_view from a cstr.
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER >= 1910
 #define ABSL_HAVE_CONSTEXPR_STRING_VIEW_FROM_CSTR 1
 #endif
 
@@ -1117,9 +1142,20 @@ TEST(StringViewTest, ConstexprCompiles) {
 #endif
 #endif
 
+#if !defined(__clang__) || 3 < __clang_major__ || \
+  (3 == __clang_major__ && 4 < __clang_minor__)
+  // older clang versions (< 3.5) complain that:
+  //   "cannot perform pointer arithmetic on null pointer"
   constexpr absl::string_view::iterator const_begin_empty = sp.begin();
   constexpr absl::string_view::iterator const_end_empty = sp.end();
   EXPECT_EQ(const_begin_empty, const_end_empty);
+
+#ifdef ABSL_HAVE_STRING_VIEW_FROM_NULLPTR
+  constexpr absl::string_view::iterator const_begin_nullptr = cstr.begin();
+  constexpr absl::string_view::iterator const_end_nullptr = cstr.end();
+  EXPECT_EQ(const_begin_nullptr, const_end_nullptr);
+#endif  // ABSL_HAVE_STRING_VIEW_FROM_NULLPTR
+#endif  // !defined(__clang__) || ...
 
   constexpr absl::string_view::iterator const_begin = cstr_len.begin();
   constexpr absl::string_view::iterator const_end = cstr_len.end();

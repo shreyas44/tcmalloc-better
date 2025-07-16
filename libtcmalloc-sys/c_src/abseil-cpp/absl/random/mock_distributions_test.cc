@@ -69,14 +69,20 @@ TEST(MockDistributions, Examples) {
       .WillOnce(Return(0.001));
   EXPECT_EQ(absl::Gaussian<double>(gen, 0.0, 1.0), 0.001);
 
-  const int kHigh = (1 << 30) - 1;
-  EXPECT_NE(absl::LogUniform<int>(gen, 0, kHigh, 2), kHigh);
-  EXPECT_CALL(absl::MockLogUniform<int>(), Call(gen, 0, kHigh, 2))
-      .WillOnce(Return(kHigh));
-  EXPECT_EQ(absl::LogUniform<int>(gen, 0, kHigh, 2), kHigh);
+  EXPECT_NE(absl::LogUniform<int>(gen, 0, 1000000, 2), 2040);
+  EXPECT_CALL(absl::MockLogUniform<int>(), Call(gen, 0, 1000000, 2))
+      .WillOnce(Return(2040));
+  EXPECT_EQ(absl::LogUniform<int>(gen, 0, 1000000, 2), 2040);
 }
 
-TEST(MockDistributions, UniformUInt128BoundariesAreAllowed) {
+TEST(MockUniform, OutOfBoundsIsAllowed) {
+  absl::UnvalidatedMockingBitGen gen;
+
+  EXPECT_CALL(absl::MockUniform<int>(), Call(gen, 1, 100)).WillOnce(Return(0));
+  EXPECT_EQ(absl::Uniform<int>(gen, 1, 100), 0);
+}
+
+TEST(ValidatedMockDistributions, UniformUInt128Works) {
   absl::MockingBitGen gen;
 
   EXPECT_CALL(absl::MockUniform<absl::uint128>(), Call(gen))
@@ -84,7 +90,7 @@ TEST(MockDistributions, UniformUInt128BoundariesAreAllowed) {
   EXPECT_EQ(absl::Uniform<absl::uint128>(gen), absl::Uint128Max());
 }
 
-TEST(MockDistributions, UniformDoubleBoundaryCasesAreAllowed) {
+TEST(ValidatedMockDistributions, UniformDoubleBoundaryCases) {
   absl::MockingBitGen gen;
 
   EXPECT_CALL(absl::MockUniform<double>(), Call(gen, 1.0, 10.0))
@@ -108,7 +114,7 @@ TEST(MockDistributions, UniformDoubleBoundaryCasesAreAllowed) {
             std::nextafter(1.0, std::numeric_limits<double>::infinity()));
 }
 
-TEST(MockDistributions, UniformDoubleEmptyRangesAllowTheBoundary) {
+TEST(ValidatedMockDistributions, UniformDoubleEmptyRangeCases) {
   absl::MockingBitGen gen;
 
   ON_CALL(absl::MockUniform<double>(), Call(absl::IntervalOpen, gen, 1.0, 1.0))
@@ -128,7 +134,7 @@ TEST(MockDistributions, UniformDoubleEmptyRangesAllowTheBoundary) {
             1.0);
 }
 
-TEST(MockDistributions, UniformIntEmptyRangeCasesAllowTheBoundary) {
+TEST(ValidatedMockDistributions, UniformIntEmptyRangeCases) {
   absl::MockingBitGen gen;
 
   ON_CALL(absl::MockUniform<int>(), Call(absl::IntervalOpen, gen, 1, 1))
@@ -144,7 +150,7 @@ TEST(MockDistributions, UniformIntEmptyRangeCasesAllowTheBoundary) {
   EXPECT_EQ(absl::Uniform<int>(absl::IntervalClosedOpen, gen, 1, 1), 1);
 }
 
-TEST(MockUniformDeathTest, OutOfBoundsValuesAreRejected) {
+TEST(ValidatedMockUniformDeathTest, Examples) {
   absl::MockingBitGen gen;
 
   EXPECT_DEATH_IF_SUPPORTED(
@@ -246,7 +252,7 @@ TEST(MockUniformDeathTest, OutOfBoundsValuesAreRejected) {
       " 101 is not in \\[1, 100\\]");
 }
 
-TEST(MockUniformDeathTest, OutOfBoundsDoublesAreRejected) {
+TEST(ValidatedMockUniformDeathTest, DoubleBoundaryCases) {
   absl::MockingBitGen gen;
 
   EXPECT_DEATH_IF_SUPPORTED(

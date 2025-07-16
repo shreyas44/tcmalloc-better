@@ -516,11 +516,8 @@ TEST_F(FormatEntryPointTest, SNPrintF) {
   EXPECT_EQ(result, 17);
   EXPECT_EQ(std::string(buffer), "NUMBER: 1234567");
 
-  // Test that the buffer is never written to if the size is zero.
-  buffer[0] = '\0';
-  result = SNPrintF(buffer, 0, "Just checking the %s of the output.", "size");
+  result = SNPrintF(nullptr, 0, "Just checking the %s of the output.", "size");
   EXPECT_EQ(result, 37);
-  EXPECT_EQ(buffer[0], '\0');
 }
 
 TEST_F(FormatEntryPointTest, SNPrintFWithV) {
@@ -548,11 +545,8 @@ TEST_F(FormatEntryPointTest, SNPrintFWithV) {
 
   std::string size = "size";
 
-  // Test that the buffer is never written to if the size is zero.
-  buffer[0] = '\0';
-  result = SNPrintF(buffer, 0, "Just checking the %v of the output.", size);
+  result = SNPrintF(nullptr, 0, "Just checking the %v of the output.", size);
   EXPECT_EQ(result, 37);
-  EXPECT_EQ(buffer[0], '\0');
 }
 
 TEST(StrFormat, BehavesAsDocumented) {

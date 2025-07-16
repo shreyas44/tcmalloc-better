@@ -42,8 +42,6 @@ const SizeClasses& SizeMap::CurrentClasses() {
       return kExperimentalPow2SizeClasses;
     case SizeClassConfiguration::kReuse:
       return kSizeClasses;
-    case SizeClassConfiguration::kReuseV2:
-      return kReuseSizeClassesV2;
     case SizeClassConfiguration::kLegacy:
       // TODO(b/242710633): remove this opt out.
       return kLegacySizeClasses;
@@ -59,13 +57,11 @@ bool SizeMap::CheckAssumptions() {
             a.has_expanded_classes, kHasExpandedClasses);
     failed |= true;
   }
-#ifdef NDEBUG
   if (a.span_size != sizeof(Span)) {
     fprintf(stderr, "sizeof(Span): assumed %zu, actual %zu\n", a.span_size,
             sizeof(Span));
     failed |= true;
   }
-#endif  // NDEBUG
   if (a.sampling_interval != kDefaultProfileSamplingInterval) {
     fprintf(stderr,
             "kDefaultProfileSamplingInterval: assumed %zu, actual %zu\n",

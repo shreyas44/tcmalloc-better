@@ -90,7 +90,7 @@ struct VModuleInfo final {
 // To avoid problems with the heap checker which calls into `VLOG`, `mutex` must
 // be a `SpinLock` that prevents fiber scheduling instead of a `Mutex`.
 ABSL_CONST_INIT absl::base_internal::SpinLock mutex(
-    absl::base_internal::SCHEDULE_KERNEL_ONLY);
+    absl::kConstInit, absl::base_internal::SCHEDULE_KERNEL_ONLY);
 
 // `GetUpdateSitesMutex()` serializes updates to all of the sites (i.e. those in
 // `site_list_head`) themselves.
@@ -207,14 +207,7 @@ int PrependVModuleLocked(absl::string_view module_pattern, int log_level)
   get_vmodule_info().erase(
       std::remove_if(++iter, get_vmodule_info().end(),
                      [module_pattern](const VModuleInfo& info) {
-                       // Remove the previous pattern if it is less generic than
-                       // the new one. For example, if the new pattern
-                       // `module_pattern` is "foo*" and the previous pattern
-                       // `info.module_pattern` is "foo", we should remove the
-                       // previous pattern. Because the new pattern "foo*" will
-                       // match all the files that the previous pattern "foo"
-                       // matches.
-                       return FNMatch(module_pattern, info.module_pattern);
+                       return FNMatch(info.module_pattern, module_pattern);
                      }),
       get_vmodule_info().cend());
   return old_log_level.value_or(global_v);

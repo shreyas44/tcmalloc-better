@@ -26,7 +26,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "tcmalloc/common.h"
 #include "tcmalloc/huge_cache.h"
@@ -37,7 +36,6 @@
 #include "tcmalloc/internal/clock.h"
 #include "tcmalloc/internal/config.h"
 #include "tcmalloc/internal/logging.h"
-#include "tcmalloc/internal/memory_tag.h"
 #include "tcmalloc/internal/pageflags.h"
 #include "tcmalloc/internal/range_tracker.h"
 #include "tcmalloc/internal/residency.h"
@@ -91,11 +89,6 @@ class MockUnback final : public MemoryModifyFunction {
 
     return true;
   }
-};
-
-class MockSetAnonVmaName final : public MemoryTagFunction {
- public:
-  void operator()(Range r, std::optional<absl::string_view> name) override {}
 };
 
 class FakePageFlags : public PageFlagsBase {
@@ -154,7 +147,6 @@ void FuzzFiller(const std::string& s) {
   // Reset global state.
   MockUnback unback;
   MockCollapse collapse;
-  MockSetAnonVmaName set_anon_vma_name;
   fake_clock = 0;
   unback_success = true;
   absl::flat_hash_set<PageId>& released_set = ReleasedPages();
@@ -189,9 +181,9 @@ void FuzzFiller(const std::string& s) {
   data += kInitBytes;
   size -= kInitBytes;
 
-  HugePageFiller<PageTracker> filler(
-      Clock{.now = mock_clock, .freq = freq}, sparse_tracker_type,
-      MemoryTag::kNormal, unback, unback, collapse, set_anon_vma_name);
+  HugePageFiller<PageTracker> filler(Clock{.now = mock_clock, .freq = freq},
+                                     sparse_tracker_type, unback, unback,
+                                     collapse);
 
   std::vector<PageTracker*> trackers;
   absl::flat_hash_map<PageTracker*, std::vector<Range>> allocs;
@@ -499,9 +491,8 @@ void FuzzFiller(const std::string& s) {
       case 10: {
         FakePageFlags pageflags;
         FakeResidency residency;
-        bool enable_collapse = (value % 2) == 0;
         PageHeapSpinLockHolder l;
-        filler.TreatHugepageTrackers(enable_collapse, &pageflags, &residency);
+        filler.TryHugepageCollapse(&pageflags, &residency);
         CHECK(filler.FetchFullyFreedTracker() == nullptr);
         break;
       }

@@ -85,9 +85,6 @@ void MallocExtension_Internal_ProcessBackgroundActions() {
     const absl::Duration transfer_cache_resize_period = 2 * sleep_time;
 #endif
 
-    // Iterate through hugepage trackers in TCMalloc's HugePageFiller. Apply
-    // different treatments (e.g. usermode collapse, custom name sampled VMAs,
-    // etc.) once every hpaa_hugepage_check_period.
     const absl::Duration hpaa_hugepage_check_period = 5 * sleep_time;
 
     absl::Time now = absl::Now();
@@ -153,9 +150,9 @@ void MallocExtension_Internal_ProcessBackgroundActions() {
     }
 #endif
 
-    if (now - last_hpaa_hugepage_check >= hpaa_hugepage_check_period) {
-      tc_globals.page_allocator().TreatHugepageTrackers(
-          Parameters::usermode_hugepage_collapse());
+    if (Parameters::usermode_hugepage_collapse() &&
+        now - last_hpaa_hugepage_check >= hpaa_hugepage_check_period) {
+      tc_globals.page_allocator().TryHugepageCollapse();
       last_hpaa_hugepage_check = now;
     }
 

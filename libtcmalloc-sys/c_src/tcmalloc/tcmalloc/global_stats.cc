@@ -276,8 +276,6 @@ static absl::string_view SizeClassConfigurationString(
       return "SIZE_CLASS_LEGACY";
     case SizeClassConfiguration::kReuse:
       return "SIZE_CLASS_REUSE";
-    case SizeClassConfiguration::kReuseV2:
-      return "SIZE_CLASS_REUSE_V2";
   }
 
   ASSUME(false);
@@ -485,9 +483,8 @@ void DumpStats(Printer& out, int level) {
     }
 #endif
 
-    tc_globals.transfer_cache().Print(tc_globals.per_size_class_counts(), out);
-    tc_globals.sharded_transfer_cache().Print(
-        tc_globals.per_size_class_counts(), out);
+    tc_globals.transfer_cache().Print(out);
+    tc_globals.sharded_transfer_cache().Print(out);
 
     if (UsePerCpuCache(tc_globals)) {
       tc_globals.cpu_cache().Print(out);
@@ -712,10 +709,8 @@ void DumpStatsInPbtxt(Printer& out, int level) {
 #endif
     }
 
-    tc_globals.transfer_cache().PrintInPbtxt(tc_globals.per_size_class_counts(),
-                                             region);
-    tc_globals.sharded_transfer_cache().PrintInPbtxt(
-        tc_globals.per_size_class_counts(), region);
+    tc_globals.transfer_cache().PrintInPbtxt(region);
+    tc_globals.sharded_transfer_cache().PrintInPbtxt(region);
 
     if (UsePerCpuCache(tc_globals)) {
       tc_globals.cpu_cache().PrintInPbtxt(region);
