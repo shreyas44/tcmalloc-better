@@ -36,6 +36,12 @@ impl TCMalloc {
             None
         }
     }
+
+    /// Sets the maximum cache size per CPU cache. This is a per-core limit.
+    #[inline]
+    pub fn set_max_per_cpu_cache_size(value: i32) {
+        unsafe { libtcmalloc_sys::TCMalloc_Internal_SetMaxPerCpuCacheSize(value) };
+    }
 }
 
 #[cfg(test)]

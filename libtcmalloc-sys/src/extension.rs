@@ -6,4 +6,7 @@ unsafe extern "C" {
     ///
     /// Should be run in the background thread. May return or may not return.
     pub fn ProcessBackgroundActions();
+
+    /// Sets the maximum cache size per CPU cache. This is a per-core limit.
+    pub fn TCMalloc_Internal_SetMaxPerCpuCacheSize(value: i32);
 }
